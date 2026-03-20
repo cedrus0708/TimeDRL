@@ -457,35 +457,7 @@ def trainable(
 
 if __name__ == "__main__":
     """------------------------------------"""
-    task_name = "forecasting"
-    # task_name = "classification"
-
-    if task_name == "forecasting":
-        # * data_name
-        data_name = "ETTh1"  # 7
-        # data_name = "ETTh2"  # 7
-        # data_name = "ETTm1"  # 7
-        # data_name = "ETTm2"  # 7
-        # data_name = "Exchange"  # 8
-        # data_name = "Weather"  # 21
-
-        # * pred_len_list
-        pred_len_list = [24, 48, 168, 336, 720]  # ETTh1, ETTh2, Exchange, Weather
-        # pred_len_list = [24, 48, 96, 228, 672]  # ETTm1, ETTm2
-        # pred_len_list = [168]  # ablation study
-
-        # * features
-        features = "M"  # Multivariate
-        # features = "S"  # Univariate
-    elif task_name == "classification":
-        # * data_name
-        # data_name = "HAR"  # (128, 9)
-        data_name = "WISDM"  # (256, 3)
-        # data_name = "Epilepsy"  # (178, 1)
-        # data_name = "PenDigits"  # (8, 2)
-        # data_name = "FingerMovements"  # (50, 28)
-    else:
-        raise NotImplementedError
+   
 
     num_workers = 4  # It doesn't really matter since we don't use it in dataloader
     # num_workers = 6
@@ -552,8 +524,8 @@ if __name__ == "__main__":
 
     # Setup fixed params
     fixed_params = {
-        "task_name": task_name,
-        "data_name": data_name,
+        "task_name": args.task_name,
+        "data_name": args.data_name,
         "num_workers": num_workers,
         "batch_size": batch_size,
         "train_together": train_together,
@@ -567,8 +539,8 @@ if __name__ == "__main__":
         "linear_eval_data_percent": linear_eval_data_percent,
         "disable_freeze_encoder": disable_freeze_encoder,
     }
-    if task_name == "forecasting":
-        fixed_params["pred_len_list"] = pred_len_list  # type: ignore
+    if args.task_name == "forecasting":
+        fixed_params["pred_len_list"] = args.pred_len_list  # type: ignore
         fixed_params["features"] = features  # type: ignore
 
     # Setup tunable params

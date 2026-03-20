@@ -17,6 +17,8 @@ from utils.visual import show_table, show_plot
 from models import linear_forecaster as linear_eval
 from layers.Embed import Patching
 
+import matplotlib.pyplot as plt
+
 warnings.filterwarnings("ignore")
 
 
@@ -571,3 +573,80 @@ class Exp_Forecasting(Exp_Basic):
         mae = total_mae / total_samples
 
         return mse, mae
+
+
+
+
+    def collect_predictions(self, data_loader, max_batches=1):
+        xs, ys, preds = [], [], []
+
+        self.model.eval()
+        self.linear_eval.eval()
+
+        with torch.no_grad():
+            for i, (batch_x, batch_y, _, _) in enumerate(data_loader):
+                batch_x = batch_x.float().to(self.device)
+                batch_y = batch_y.float().to(self.device)
+
+                t_1, t_2, _, _, _, _, _, _ = self.model(batch_x)
+
+                y_pred_1 = self.linear_eval(t_1)
+                y_pred_2 = self.linear_eval(t_2)
+
+                y_pred_1 = self.model.revin(y_pred_1, "denorm")
+                y_pred_2 = self.model.revin(y_pred_2, "denorm")
+
+                y_pred = (y_pred_1 + y_pred_2) / 2.0
+
+                xs.append(batch_x.detach().cpu())
+                ys.append(batch_y.detach().cpu())
+                preds.append(y_pred.detach().cpu())
+
+                if i + 1 >= max_batches:
+                    break
+
+        return (
+            torch.cat(xs, dim=0),
+            torch.cat(ys, dim=0),
+            torch.cat(preds, dim=0),
+        )
+    
+
+
+    def plot_forecast_example(x, y_true, y_pred, sample_idx=0, channel_idx=0, title=None):
+        hist = x[sample_idx, :, channel_idx].numpy()
+        true = y_true[sample_idx, :, channel_idx].numpy()
+        pred = y_pred[sample_idx, :, channel_idx].numpy()
+
+        t_hist = np.arange(len(hist))
+        t_fut = np.arange(len(hist), len(hist) + len(true))
+
+        plt.figure(figsize=(12, 4))
+        plt.plot(t_hist, hist, label="input window")
+        plt.plot(t_fut, true, label="ground truth")
+        plt.plot(t_fut, pred, label="forecast")
+        plt.axvline(len(hist) - 1, linestyle="--")
+        plt.legend()
+        plt.title(title or f"sample={sample_idx}, channel={channel_idx}")
+        plt.show()
+
+
+    def plot_pretrain_history(pretrain_history):
+        plt.figure(figsize=(10, 4))
+        for k, v in pretrain_history.items():
+            plt.plot(v, label=k)
+        plt.xlabel("pretrain epoch")
+        plt.ylabel("loss")
+        plt.legend()
+        plt.title("Pretraining curves")
+        plt.show()
+
+    def plot_linear_eval_history(hist):
+        plt.figure(figsize=(10, 4))
+        for split in hist:
+            for metric in hist[split]:
+                plt.plot(hist[split][metric], label=f"{split}_{metric}")
+        plt.xlabel("linear-eval epoch")
+        plt.legend()
+        plt.title("Linear evaluation curves")
+        plt.show()
