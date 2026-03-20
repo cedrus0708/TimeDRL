@@ -541,7 +541,7 @@ if __name__ == "__main__":
     }
     if args.task_name == "forecasting":
         fixed_params["pred_len_list"] = args.pred_len_list  # type: ignore
-        fixed_params["features"] = features  # type: ignore
+        fixed_params["features"] = args.features  # type: ignore
 
     # Setup tunable params
     # TODO: copy `config` from `exp_settings_and_results` (be careful with the boolean values)
