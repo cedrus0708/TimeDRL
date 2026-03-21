@@ -16,6 +16,8 @@ from utils.tools import (
 )
 from dataset_loader.dataset_loader import update_args_from_dataset
 
+from utils.saver import Saver
+
 
 def get_args_from_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="TimeDRL")
@@ -379,11 +381,15 @@ def update_args(
 
 
 def run_exp(args: argparse.Namespace) -> dict:
+
+    # create saver
+    saver = Saver(args)
+
     # * Get exp
     if args.task_name == "forecasting":
-        exp = Exp_Forecasting(args)
+        exp = Exp_Forecasting(args, saver)
     elif args.task_name == "classification":
-        exp = Exp_Classification(args)
+        exp = Exp_Classification(args, saver)
     else:
         raise NotImplementedError
 

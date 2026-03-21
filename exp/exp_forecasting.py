@@ -24,8 +24,8 @@ warnings.filterwarnings("ignore")
 
 
 class Exp_Forecasting(Exp_Basic):
-    def __init__(self, args):
-        super().__init__(args)
+    def __init__(self, args, saver):
+        super().__init__(args, saver)
         # 1. set args, model_dict, device into self
         # 2. build model
 
@@ -766,10 +766,11 @@ class Exp_Forecasting(Exp_Basic):
         plt.legend(handles=legend_handles, loc="best")
 
         plt.tight_layout()
-        plt.savefig(f"./plots/{save_name}", dpi=200, bbox_inches="tight")
+        full_path = self.saver.get_path("learning_curves", save_name)
+        plt.savefig(full_path, dpi=200, bbox_inches="tight")
         plt.close()
 
-        print(f"Forecast plot saved to: ./plots/{save_name}")
+        print(f"Forecast plot saved to: {full_path}")
 
 
     def plot_pretrain_history(self, pretrain_history):

@@ -22,8 +22,8 @@ warnings.filterwarnings("ignore")
 
 
 class Exp_Classification(Exp_Basic):
-    def __init__(self, args):
-        super().__init__(args)
+    def __init__(self, args, saver):
+        super().__init__(args, saver)
         # 1. set args, model_dict, device into self
         # 2. build model
 

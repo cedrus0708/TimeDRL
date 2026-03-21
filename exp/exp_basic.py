@@ -4,7 +4,7 @@ from models import TimeDRL
 
 
 class Exp_Basic(object):
-    def __init__(self, args):
+    def __init__(self, args, saver):
         args = self.set_args(args)
         self.args = args
         self.model_dict = {
@@ -12,6 +12,8 @@ class Exp_Basic(object):
         }
         self.device = self._acquire_device()
         self.model = self._build_model().to(self.device)
+
+        self.saver = saver
 
     def set_args(self, args):
         # Set d_model
