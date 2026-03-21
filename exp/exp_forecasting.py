@@ -438,7 +438,16 @@ class Exp_Forecasting(Exp_Basic):
                 print("Forecast example plotting on test data")
                 x_t, y_true_t, y_predself_t = self.collect_predictions(test_loader, max_batches=2)
 
-                self.plot_forecast_example(x_t, y_true_t, y_predself_t) #x, y_true, y_pred, sample_idx=0, channel_idx=0, title=None)
+                save_path=f"forecast_example_pretrain{pretrain_epoch+1}_lineval{linear_eval_epoch+1}.png"
+
+                self.plot_forecast_example(
+                    x_t, 
+                    y_true_t, 
+                    y_predself_t, 
+                    sample_idx=0,
+                    channel_idx=0,
+                    save_path=save_path
+                ) #x, y_true, y_pred, sample_idx=0, channel_idx=0, title=None)
                 
 
 
@@ -625,7 +634,7 @@ class Exp_Forecasting(Exp_Basic):
     
 
 
-    def plot_forecast_example(self, x, y_true, y_pred, sample_idx=0, channel_idx=0, title=None):
+    def plot_forecast_example_old(self, x, y_true, y_pred, sample_idx=0, channel_idx=0, title=None):
         hist = x[sample_idx, :, channel_idx].numpy()
         true = y_true[sample_idx, :, channel_idx].numpy()
         pred = y_pred[sample_idx, :, channel_idx].numpy()
@@ -641,6 +650,37 @@ class Exp_Forecasting(Exp_Basic):
         plt.legend()
         plt.title(title or f"sample={sample_idx}, channel={channel_idx}")
         plt.show()
+
+    def plot_forecast_example(
+        self,
+        x,
+        y_true,
+        y_pred,
+        sample_idx=0,
+        channel_idx=0,
+        title=None,
+        save_name="forecast_example.png",
+    ):
+
+        hist = x[sample_idx, :, channel_idx].detach().cpu().numpy()
+        true = y_true[sample_idx, :, channel_idx].detach().cpu().numpy()
+        pred = y_pred[sample_idx, :, channel_idx].detach().cpu().numpy()
+
+        t_hist = np.arange(len(hist))
+        t_fut = np.arange(len(hist), len(hist) + len(true))
+
+        plt.figure(figsize=(12, 4))
+        plt.plot(t_hist, hist, label="input window")
+        plt.plot(t_fut, true, label="ground truth")
+        plt.plot(t_fut, pred, label="forecast")
+        plt.axvline(len(hist) - 1, linestyle="--")
+        plt.legend()
+        plt.title(title or f"sample={sample_idx}, channel={channel_idx}")
+        plt.tight_layout()
+        plt.savefig(f"./plots/{save_name}", dpi=200, bbox_inches="tight")
+        plt.close()
+
+        print(f"Forecast plot saved to: ./plots/{save_name}")
 
 
     def plot_pretrain_history(self, pretrain_history):
