@@ -18,6 +18,7 @@ from models import linear_forecaster as linear_eval
 from layers.Embed import Patching
 
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 warnings.filterwarnings("ignore")
 
@@ -447,18 +448,17 @@ class Exp_Forecasting(Exp_Basic):
                 #print("y_true_t:", y_true_t)
                 #print("xy_predself_t_t:", y_predself_t)
 
-                for ch in range(x_t.shape[2]):
+                save_name=f"forecast_example_pretrain{pretrain_epoch+1}_lineval{linear_eval_epoch+1}.png"
 
-                    save_name=f"forecast_example_pretrain{pretrain_epoch+1}_lineval{linear_eval_epoch+1}_channel{ch+1}.png"
-
-                    self.plot_forecast_example(
-                        x_t, 
-                        y_true_t, 
-                        y_predself_t, 
-                        sample_idx=0,
-                        channel_idx=ch,
-                        save_name=save_name
-                    ) #x, y_true, y_pred, sample_idx=0, channel_idx=0, title=None)
+                self.plot_forecast_example(
+                    x_t, 
+                    y_true_t, 
+                    y_predself_t, 
+                    sample_idx=0,
+                    title=f"forecast_example_pretrain{pretrain_epoch+1}_lineval{linear_eval_epoch+1}",
+                    save_name=save_name,
+                    
+                ) # x, y_true, y_pred, sample_idx=0, title=None, save_name="forecast_example.png", normalize_per_channel=True, offset_scale=3.0,
                 
 
 
@@ -662,7 +662,7 @@ class Exp_Forecasting(Exp_Basic):
         plt.title(title or f"sample={sample_idx}, channel={channel_idx}")
         plt.show()
 
-    def plot_forecast_example(
+    def plot_forecast_example_newer_old(
         self,
         x,
         y_true,
@@ -687,6 +687,81 @@ class Exp_Forecasting(Exp_Basic):
         plt.axvline(len(hist) - 1, linestyle="--")
         plt.legend()
         plt.title(title or f"sample={sample_idx}, channel={channel_idx}")
+        plt.tight_layout()
+        plt.savefig(f"./plots/{save_name}", dpi=200, bbox_inches="tight")
+        plt.close()
+
+        print(f"Forecast plot saved to: ./plots/{save_name}")
+
+
+    def plot_forecast_example(
+        self,
+        x,
+        y_true,
+        y_pred,
+        sample_idx=0,
+        title=None,
+        save_name="forecast_example.png",
+        normalize_per_channel=True,
+        offset_scale=3.0,
+    ):
+        #os.makedirs("./plots", exist_ok=True)
+
+        # x: [B, T_in, C]
+        # y_true: [B, T_out, C]
+        # y_pred: [B, T_out, C]
+        x_np = x[sample_idx].detach().cpu().numpy()         # [T_in, C]
+        y_true_np = y_true[sample_idx].detach().cpu().numpy()  # [T_out, C]
+        y_pred_np = y_pred[sample_idx].detach().cpu().numpy()  # [T_out, C]
+
+        t_in, n_channels = x_np.shape
+        t_out = y_true_np.shape[0]
+
+        t_hist = np.arange(t_in)
+        t_fut = np.arange(t_in, t_in + t_out)
+
+        plt.figure(figsize=(14, max(6, 1.2 * n_channels)))
+
+        for ch in range(n_channels):
+            hist = x_np[:, ch].copy()
+            true = y_true_np[:, ch].copy()
+            pred = y_pred_np[:, ch].copy()
+
+            if normalize_per_channel:
+                full = np.concatenate([hist, true, pred])
+                mean = full.mean()
+                std = full.std()
+                if std < 1e-8:
+                    std = 1.0
+                hist = (hist - mean) / std
+                true = (true - mean) / std
+                pred = (pred - mean) / std
+
+            offset = ch * offset_scale
+
+            plt.plot(t_hist, hist + offset, linewidth=1.2)
+            plt.plot(t_fut, true + offset, linewidth=1.2, linestyle="-")
+            plt.plot(t_fut, pred + offset, linewidth=1.2, linestyle="--")
+
+        plt.axvline(t_in - 1, linestyle="--", alpha=0.7)
+
+        # y-tengelyre csatornanevek / indexek
+        yticks = [ch * offset_scale for ch in range(n_channels)]
+        ylabels = [f"ch {ch}" for ch in range(n_channels)]
+        plt.yticks(yticks, ylabels)
+
+        plt.xlabel("time step")
+        plt.ylabel("channels")
+        plt.title(title or f"Forecast example, sample={sample_idx}")
+
+        # Egyszerű, tiszta legenda
+        legend_handles = [
+            Line2D([0], [0], linestyle="-", label="input / history"),
+            Line2D([0], [0], linestyle="-", label="ground truth"),
+            Line2D([0], [0], linestyle="--", label="forecast"),
+        ]
+        plt.legend(handles=legend_handles, loc="best")
+
         plt.tight_layout()
         plt.savefig(f"./plots/{save_name}", dpi=200, bbox_inches="tight")
         plt.close()
