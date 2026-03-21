@@ -435,9 +435,15 @@ class Exp_Forecasting(Exp_Basic):
                 local_linear_eval_history["test"]["loss"].append(test_loss)
                 local_linear_eval_history["test"]["mae"].append(test_mae)
 
+                print("Forecast example plotting on test data")
+                x_t, y_true_t, y_predself_t = self.collect_predictions(test_loader, max_batches=2)
+
+                self.plot_forecast_example(x_t, y_true_t, y_predself_t) #x, y_true, y_pred, sample_idx=0, channel_idx=0, title=None)
+                
+
+
                 # * Show metrics for all the previous epochs
                 show_table(local_linear_eval_history)
-                print("PLOT")
                 show_plot(local_linear_eval_history)
 
 
@@ -517,6 +523,9 @@ class Exp_Forecasting(Exp_Basic):
         print(f"### pred_len: {self.args.pred_len} ###")
         print_formatted_dict(metrics)
         print("===============================")
+
+        print("plot history")
+        self.plot_linear_eval_history(linear_eval_history)
 
         self.spent_time = time.time() - start_time
 
