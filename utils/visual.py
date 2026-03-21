@@ -1,6 +1,7 @@
 from rich.table import Table
 from rich.console import Console
-import plotext as plt
+import matplotlib.pyplot as plt
+
 
 STYLE_COLOR = {"train": "blue", "valid": "green", "test": "red"}
 
