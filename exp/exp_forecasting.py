@@ -447,7 +447,7 @@ class Exp_Forecasting(Exp_Basic):
                 #print("y_true_t:", y_true_t)
                 #print("xy_predself_t_t:", y_predself_t)
 
-                for i in range(len(len(x_t))):
+                for i in range(len(x_t)):
 
                     save_name=f"forecast_example_pretrain{pretrain_epoch+1}_lineval{linear_eval_epoch+1}_channel{i+1}.png"
 
