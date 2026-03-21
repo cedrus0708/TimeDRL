@@ -28,36 +28,40 @@ def show_table(history):
                 row.append(f"{value:.3f}")
         table.add_row(*row)
     console.print(table)
-    
 
-def show_plot(history):
+
+def show_plot(history, save_path="training_history.png"):
     metrics = list(history["test"].keys())
     modes = list(history.keys())
 
-    print(metrics, modes)
+    print("metrics:", metrics)
+    print("modes:", modes)
 
-    #plt.clf()
-    
+    epochs = list(range(1, len(history["test"]["loss"]) + 1))
 
-    for i, metric in enumerate(metrics):
-        epochs = [epoch + 1 for epoch in range(len(history["test"]["loss"]))]
-        plt.subplot(1, len(metrics), i + 1)
+    fig, axes = plt.subplots(1, len(metrics), figsize=(7 * len(metrics), 5))
 
-        plt.title(f"{metric.upper()} vs Epoch")
-        plt.xticks(epochs)
+    if len(metrics) == 1:
+        axes = [axes]
 
+    for ax, metric in zip(axes, metrics):
         for mode in modes:
-            plt.plot(
+            ax.plot(
                 epochs,
                 history[mode][metric],
                 color=STYLE_COLOR[mode],
                 label=f"{mode.capitalize()} {metric.upper()}",
             )
 
-        plt.xlabel("Epoch")
-        plt.ylabel(metric.upper())
-        plt.grid(True, alpha=0.3)
-        plt.legend()
+        ax.set_title(f"{metric.upper()} vs Epoch")
+        ax.set_xlabel("Epoch")
+        ax.set_ylabel(metric.upper())
+        ax.set_xticks(epochs)
+        ax.grid(True, alpha=0.3)
+        ax.legend()
 
     plt.tight_layout()
-    plt.show()
+    plt.savefig(save_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+    print(f"Plot saved to: {save_path}")
