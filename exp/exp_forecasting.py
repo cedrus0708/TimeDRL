@@ -722,6 +722,8 @@ class Exp_Forecasting(Exp_Basic):
 
         plt.figure(figsize=(14, max(6, 1.2 * n_channels)))
 
+        cmap = plt.get_cmap("tab10")
+
         for ch in range(n_channels):
             hist = x_np[:, ch].copy()
             true = y_true_np[:, ch].copy()
@@ -738,10 +740,11 @@ class Exp_Forecasting(Exp_Basic):
                 pred = (pred - mean) / std
 
             offset = ch * offset_scale
+            color = cmap(ch % 10)
 
-            plt.plot(t_hist, hist + offset, linewidth=1.2)
-            plt.plot(t_fut, true + offset, linewidth=1.2, linestyle="-")
-            plt.plot(t_fut, pred + offset, linewidth=1.2, linestyle="--")
+            plt.plot(t_hist, hist + offset, linewidth=1.2, color=color)
+            plt.plot(t_fut, true + offset, linewidth=1.2, linestyle="-", color=color)
+            plt.plot(t_fut, pred + offset, linewidth=1.2, linestyle="--", color=color)
 
         plt.axvline(t_in - 1, linestyle="--", alpha=0.7)
 
