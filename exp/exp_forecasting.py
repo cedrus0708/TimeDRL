@@ -437,6 +437,7 @@ class Exp_Forecasting(Exp_Basic):
 
                 # * Show metrics for all the previous epochs
                 show_table(local_linear_eval_history)
+                print("PLOT")
                 show_plot(local_linear_eval_history)
 
 
