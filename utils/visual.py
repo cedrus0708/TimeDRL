@@ -30,7 +30,7 @@ def show_table(history):
     console.print(table)
 
 
-def show_plot(history, save_path="training_history.png"):
+def show_plot(history, save_path="./img/training_history"):
     metrics = list(history["test"].keys())
     modes = list(history.keys())
 
@@ -64,4 +64,4 @@ def show_plot(history, save_path="training_history.png"):
     plt.savefig(save_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
 
-    print(f"Plot saved to: {save_path}")
+    print(f"Plot saved to: {save_path}+{epochs}.png")
