@@ -533,8 +533,8 @@ class Exp_Forecasting(Exp_Basic):
         print_formatted_dict(metrics)
         print("===============================")
 
-        print("plot history")
-        self.plot_linear_eval_history(linear_eval_history)
+        #print("plot history")
+        #self.plot_linear_eval_history(linear_eval_history)
 
         self.spent_time = time.time() - start_time
 
