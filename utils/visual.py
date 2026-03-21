@@ -61,7 +61,7 @@ def show_plot(history, save_path="./img/training_history"):
         ax.legend()
 
     plt.tight_layout()
-    plt.savefig(save_path, dpi=200, bbox_inches="tight")
+    plt.savefig(f"{save_path}_{max(epochs)}.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
 
-    print(f"Plot saved to: {save_path}+{epochs}.png")
+    print(f"Plot saved to: {save_path}_{max(epochs)}.png")
