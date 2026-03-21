@@ -625,7 +625,7 @@ class Exp_Forecasting(Exp_Basic):
     
 
 
-    def plot_forecast_example(x, y_true, y_pred, sample_idx=0, channel_idx=0, title=None):
+    def plot_forecast_example(self, x, y_true, y_pred, sample_idx=0, channel_idx=0, title=None):
         hist = x[sample_idx, :, channel_idx].numpy()
         true = y_true[sample_idx, :, channel_idx].numpy()
         pred = y_pred[sample_idx, :, channel_idx].numpy()
@@ -643,7 +643,7 @@ class Exp_Forecasting(Exp_Basic):
         plt.show()
 
 
-    def plot_pretrain_history(pretrain_history):
+    def plot_pretrain_history(self, pretrain_history):
         plt.figure(figsize=(10, 4))
         for k, v in pretrain_history.items():
             plt.plot(v, label=k)
@@ -653,7 +653,7 @@ class Exp_Forecasting(Exp_Basic):
         plt.title("Pretraining curves")
         plt.show()
 
-    def plot_linear_eval_history(hist):
+    def plot_linear_eval_history(self, hist):
         plt.figure(figsize=(10, 4))
         for split in hist:
             for metric in hist[split]:
