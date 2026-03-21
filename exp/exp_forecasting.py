@@ -438,7 +438,7 @@ class Exp_Forecasting(Exp_Basic):
                 print("Forecast example plotting on test data")
                 x_t, y_true_t, y_predself_t = self.collect_predictions(test_loader, max_batches=2)
 
-                save_path=f"forecast_example_pretrain{pretrain_epoch+1}_lineval{linear_eval_epoch+1}.png"
+                save_name=f"forecast_example_pretrain{pretrain_epoch+1}_lineval{linear_eval_epoch+1}.png"
 
                 self.plot_forecast_example(
                     x_t, 
@@ -446,7 +446,7 @@ class Exp_Forecasting(Exp_Basic):
                     y_predself_t, 
                     sample_idx=0,
                     channel_idx=0,
-                    save_path=save_path
+                    save_name=save_name
                 ) #x, y_true, y_pred, sample_idx=0, channel_idx=0, title=None)
                 
 
