@@ -464,7 +464,7 @@ class Exp_Forecasting(Exp_Basic):
 
                 # * Show metrics for all the previous epochs
                 show_table(local_linear_eval_history)
-                show_plot(local_linear_eval_history)
+                #show_plot(local_linear_eval_history)
 
 
                 # * Early stopping
