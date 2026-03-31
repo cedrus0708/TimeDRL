@@ -547,6 +547,8 @@ class Exp_Forecasting(Exp_Basic):
         #print("plot history")
         #self.plot_linear_eval_history(linear_eval_history)
 
+        self.saver.save_results(metrics)
+
         self.spent_time = time.time() - start_time
 
         return metrics
