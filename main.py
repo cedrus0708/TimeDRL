@@ -385,19 +385,29 @@ def run_exp(args: argparse.Namespace) -> dict:
     # create saver
     saver = Saver(args)
 
-    # * Get exp
-    if args.task_name == "forecasting":
-        exp = Exp_Forecasting(args, saver)
-    elif args.task_name == "classification":
-        exp = Exp_Classification(args, saver)
-    else:
-        raise NotImplementedError
+    try:
+        # training
+        
+        # * Get exp
+        if args.task_name == "forecasting":
+            exp = Exp_Forecasting(args, saver)
+        elif args.task_name == "classification":
+            exp = Exp_Classification(args, saver)
+        else:
+            raise NotImplementedError
 
-    # * Run the experiment
-    if args.train_together:
-        metrics = exp.train_together(use_tqdm=True)
-    else:
-        metrics = exp.train(use_tqdm=True)
+        # * Run the experiment
+        if args.train_together:
+            metrics = exp.train_together(use_tqdm=True)
+        else:
+            metrics = exp.train(use_tqdm=True)
+       
+        saver.save_results(metrics, message="Stable run.")
+
+    except Exception as e:
+        saver.save_failed_run(message=str(e))
+        raise
+
 
     # * Delete checkpoints
     if args.delete_checkpoints:
