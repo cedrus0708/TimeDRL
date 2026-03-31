@@ -766,7 +766,7 @@ class Exp_Forecasting(Exp_Basic):
         plt.legend(handles=legend_handles, loc="best")
 
         plt.tight_layout()
-        full_path = self.saver.get_path("learning_curves", save_name)
+        full_path = self.saver.get_path("forecast_examples", save_name)
         plt.savefig(full_path, dpi=200, bbox_inches="tight")
         plt.close()
 
