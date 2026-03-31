@@ -55,6 +55,16 @@ class Saver:
         print("EXPERIMENT PATH: ", self.path_name)
         print("---------------")
 
+    def _registry_fieldnames(self):
+        return [
+            "experiment_name",
+            "message",
+            "status",
+            "results",
+            "args",
+            "run_path",
+        ]
+
     def _save_args_file(self):
         args_txt_path = os.path.join(self.path_name, "args.txt")
         with open(args_txt_path, "w", encoding="utf-8") as f:
