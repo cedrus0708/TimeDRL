@@ -3,7 +3,7 @@ import sys
 import csv
 import json
 from datetime import datetime
-
+from pathlib import Path
 
 class Saver:
     def __init__(self, args): # full path example: /content/drive/MyDrive/itt_most/egyetem/onlab/run_results/forecasting_M_ETTh1/2026_03_21_16_51_21 and inside here: /forecast_examples and /learning_curves
@@ -15,6 +15,7 @@ class Saver:
             raise FileNotFoundError(f"The given drive_path does not exist: {self.drive_path}")
 
         self.args = args
+        self.args_dict = self._to_jsonable(vars(args))
 
 
         # Folder names
@@ -55,6 +56,15 @@ class Saver:
         print("EXPERIMENT PATH: ", self.path_name)
         print("---------------")
 
+    def _to_jsonable(self, obj):
+        if isinstance(obj, Path):
+            return str(obj)
+        if isinstance(obj, dict):
+            return {key: self._to_jsonable(value) for key, value in obj.items()}
+        if isinstance(obj, (list, tuple)):
+            return [self._to_jsonable(value) for value in obj]
+        return obj
+
     def _registry_fieldnames(self):
         return [
             "experiment_name",
@@ -68,7 +78,7 @@ class Saver:
     def _save_args_file(self):
         args_txt_path = os.path.join(self.path_name, "args.txt")
         with open(args_txt_path, "w", encoding="utf-8") as f:
-            for key, value in sorted(vars(self.args).items()):
+            for key, value in sorted(self.args_dict.items()):
                 f.write(f"{key}: {value}\n")
 
     def _create_registry_entry(self):
@@ -80,7 +90,7 @@ class Saver:
             "message": "",
             "status": "running",
             "results": "",
-            "args": json.dumps(vars(self.args), ensure_ascii=False),
+            "args": json.dumps(self.args_dict, ensure_ascii=False),
             "run_path": self.path_name,
         }
 
@@ -120,7 +130,7 @@ class Saver:
                     row["message"] = message
                     row["status"] = status
                     row["results"] = json.dumps(results, ensure_ascii=False)
-                    row["args"] = json.dumps(vars(self.args), ensure_ascii=False)
+                    row["args"] = json.dumps(self.args_dict, ensure_ascii=False)
                     row["run_path"] = self.path_name
                     found = True
                 rows.append(row)
