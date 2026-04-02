@@ -404,14 +404,18 @@ def run_exp(args: argparse.Namespace) -> dict:
        
         saver.save_results(metrics, message="Stable run.")
 
+    except KeyboardInterrupt:
+        saver.save_failed_run(message="Interrupted by user.")
+        raise
+
     except Exception as e:
         saver.save_failed_run(message=str(e))
         raise
 
-
-    # * Delete checkpoints
-    if args.delete_checkpoints:
-        shutil.rmtree(args.checkpoints, ignore_errors=True)
+    finally:
+        # * Delete checkpoints
+        if args.delete_checkpoints:
+            shutil.rmtree(args.checkpoints, ignore_errors=True)
 
     return metrics
 
