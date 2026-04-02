@@ -1,6 +1,7 @@
 from rich.table import Table
 from rich.console import Console
 import matplotlib.pyplot as plt
+import numpy as np
 
 from utils.saver import Saver
 
@@ -85,7 +86,7 @@ def show_plot(history, saver: Saver, pretrain_epoch):
         ax.legend()
 
     plt.tight_layout()
-    
+
     # mentési útvonal
     save_path = saver.get_path("learning_curves", f"linear_eval_curve_{pretrain_epoch}.png")
 
@@ -93,4 +94,26 @@ def show_plot(history, saver: Saver, pretrain_epoch):
     plt.savefig(save_path, bbox_inches="tight")
     plt.close(fig)
 
-    #print(f"Plot saved to: {saver.get_path("learning_curves", f"pretrain_loss_curve_{epochs}.png")}_{max(epochs)}.png")
+def show_final_linear_eval_plot(linear_eval_history, saver: Saver):
+    best_test_mse = list(linear_eval_history["best_test_mse"])
+    best_test_mae = list(linear_eval_history["best_test_mae"])
+    epochs = list(range(1, len(best_test_mse) + 1))
+
+    plt.figure(figsize=(8, 5))
+
+    if not np.all(np.isnan(best_test_mse)):
+        plt.plot(epochs, best_test_mse, marker="o", label="Best test MSE")
+
+    if not np.all(np.isnan(best_test_mae)):
+        plt.plot(epochs, best_test_mae, marker="o", label="Best test MAE")
+
+    plt.xlabel("Pretrain epoch")
+    plt.ylabel("Metric value")
+    plt.title("Final linear evaluation history")
+    plt.grid(True)
+    plt.legend()
+
+    save_path = saver.get_path("learning_curves", "final_linear_eval_history.png")
+    plt.savefig(save_path, bbox_inches="tight")
+    plt.show()
+    plt.close()

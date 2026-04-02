@@ -13,7 +13,7 @@ from dataset_loader.dataset_loader import load_forecasting_dataloader
 from exp.exp_basic import Exp_Basic
 from utils.tools import EarlyStopping, adjust_learning_rate
 from utils.tools import print_params, print_formatted_dict
-from utils.visual import show_pretrain_plot, show_table, show_plot
+from utils.visual import show_final_linear_eval_plot, show_pretrain_plot, show_table, show_plot
 from models import linear_forecaster as linear_eval
 from layers.Embed import Patching
 
@@ -523,6 +523,10 @@ class Exp_Forecasting(Exp_Basic):
                 self.args.pretrain_learning_rate,
             )
             print("------------------------------------------------------------------")
+
+        show_pretrain_plot(pretrain_history["pretrain_loss"], self.saver, "last")
+        #show_plot(linear_eval_history["best_test_mae"], self.saver, pretrain_epoch)
+        show_final_linear_eval_plot(linear_eval_history, self.saver)
 
         best_pretrain_epoch = np.nanargmin(pretrain_history["pretrain_loss"])
         best_best_test_mse_epoch = np.nanargmin(linear_eval_history["best_test_mse"])
