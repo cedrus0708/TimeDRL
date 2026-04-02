@@ -405,6 +405,7 @@ def run_exp(args: argparse.Namespace) -> dict:
         saver.save_results(metrics, message="Stable run.")
 
     except KeyboardInterrupt:
+        print("keyboard interrupt")
         saver.save_failed_run(message="Interrupted by user.")
         raise
 
