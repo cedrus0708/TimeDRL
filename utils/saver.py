@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import sys
 import csv
 import json
@@ -59,10 +60,33 @@ class Saver:
     def _to_jsonable(self, obj):
         if isinstance(obj, Path):
             return str(obj)
+
         if isinstance(obj, dict):
             return {key: self._to_jsonable(value) for key, value in obj.items()}
+
         if isinstance(obj, (list, tuple)):
             return [self._to_jsonable(value) for value in obj]
+
+        if isinstance(obj, np.integer):
+            return int(obj)
+
+        if isinstance(obj, np.floating):
+            return float(obj)
+
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+
+        if isinstance(obj, np.bool_):
+            return bool(obj)
+
+        if "torch" in str(type(obj)):
+            if hasattr(obj, "detach"):
+                obj = obj.detach().cpu()
+            if hasattr(obj, "ndim"):
+                if obj.ndim == 0:
+                    return obj.item()
+                return obj.tolist()
+
         return obj
 
     def _registry_fieldnames(self):
@@ -103,7 +127,7 @@ class Saver:
     def _save_results_files(self, results, message=""):
         results_json_path = os.path.join(self.path_name, "results.json")
         with open(results_json_path, "w", encoding="utf-8") as f:
-            json.dump(results, f, indent=2, ensure_ascii=False)
+            json.dump(self._to_jsonable(results), f, indent=2, ensure_ascii=False)
 
         message_path = os.path.join(self.path_name, "message.txt")
         with open(message_path, "w", encoding="utf-8") as f:
@@ -124,7 +148,7 @@ class Saver:
                 if row["experiment_name"] == self.experiment_name:
                     row["message"] = message
                     row["status"] = status
-                    row["results"] = json.dumps(results, ensure_ascii=False)
+                    row["results"] = json.dumps(self._to_jsonable(results), ensure_ascii=False)
                     row["args"] = json.dumps(self.args_dict, ensure_ascii=False)
                     row["run_path"] = self.path_name
                     found = True
