@@ -2,6 +2,8 @@ from rich.table import Table
 from rich.console import Console
 import matplotlib.pyplot as plt
 
+from utils.saver import Saver
+
 
 STYLE_COLOR = {"train": "blue", "valid": "green", "test": "red"}
 
@@ -30,7 +32,29 @@ def show_table(history):
     console.print(table)
 
 
-def show_plot(history, save_path="./img/training_history"):
+
+def show_pretrain_plot(pretrain_losses, saver: Saver):
+    # x tengely: 1, 2, 3, ..., N
+    epochs = list(range(1, len(pretrain_losses) + 1))
+
+    # ábra
+    plt.figure(figsize=(8, 5))
+    plt.plot(epochs, pretrain_losses, marker="o")
+    plt.xlabel("Epoch")
+    plt.ylabel("Pretrain loss")
+    plt.title("Pretraining loss curve")
+    plt.grid(True)
+
+    # mentési útvonal
+    save_path = saver.get_path("learning_curves", f"pretrain_loss_curve_{epochs}.png")
+
+    # mentés
+    plt.savefig(save_path, bbox_inches="tight")
+    
+
+    
+
+def show_plot(history, saver: Saver):
     metrics = list(history["test"].keys())
     modes = list(history.keys())
 
@@ -61,7 +85,7 @@ def show_plot(history, save_path="./img/training_history"):
         ax.legend()
 
     plt.tight_layout()
-    plt.savefig(f"{save_path}_{max(epochs)}.png", dpi=200, bbox_inches="tight")
+    plt.savefig(f"{saver.get_path("learning_curves", f"pretrain_loss_curve_{epochs}.png")}_{max(epochs)}.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
 
-    print(f"Plot saved to: {save_path}_{max(epochs)}.png")
+    print(f"Plot saved to: {saver.get_path("learning_curves", f"pretrain_loss_curve_{epochs}.png")}_{max(epochs)}.png")

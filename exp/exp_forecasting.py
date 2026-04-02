@@ -13,7 +13,7 @@ from dataset_loader.dataset_loader import load_forecasting_dataloader
 from exp.exp_basic import Exp_Basic
 from utils.tools import EarlyStopping, adjust_learning_rate
 from utils.tools import print_params, print_formatted_dict
-from utils.visual import show_table, show_plot
+from utils.visual import show_pretrain_plot, show_table, show_plot
 from models import linear_forecaster as linear_eval
 from layers.Embed import Patching
 
@@ -347,6 +347,8 @@ class Exp_Forecasting(Exp_Basic):
                         f"Pretrain Loss: {np.mean(pretrain_losses):.3f}"
                     )
 
+                show_pretrain_plot(pretrain_losses, self.saver)
+
                 # if i == 10:
                 #     break
 
@@ -480,6 +482,9 @@ class Exp_Forecasting(Exp_Basic):
                     self.args.linear_eval_lradj,
                     self.args.linear_eval_learning_rate,
                 )
+
+
+            #show_plot(local_linear_eval_history)
 
             # * At the end of each epoch, we get all the metrics (for both pretrain and linear_eval)
             # ? Pretrain
