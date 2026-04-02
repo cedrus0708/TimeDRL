@@ -33,7 +33,7 @@ def show_table(history):
 
 
 
-def show_pretrain_plot(pretrain_losses, saver: Saver):
+def show_pretrain_plot(pretrain_losses, saver: Saver, pretrain_epoch):
     # x tengely: 1, 2, 3, ..., N
     epochs = list(range(1, len(pretrain_losses) + 1))
 
@@ -46,7 +46,7 @@ def show_pretrain_plot(pretrain_losses, saver: Saver):
     plt.grid(True)
 
     # mentési útvonal
-    save_path = saver.get_path("learning_curves", f"pretrain_loss_curve_{epochs}.png")
+    save_path = saver.get_path("learning_curves", f"pretrain_loss_curve_{pretrain_epoch}.png")
 
     # mentés
     plt.savefig(save_path, bbox_inches="tight")

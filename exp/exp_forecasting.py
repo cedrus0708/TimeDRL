@@ -358,7 +358,7 @@ class Exp_Forecasting(Exp_Basic):
                 "test": {"loss": [], "mae": []},
             }
 
-            show_pretrain_plot(pretrain_losses, self.saver)
+            show_pretrain_plot(pretrain_losses, self.saver, pretrain_epoch)
 
             self.linear_eval.train()
             if not self.args.disable_freeze_encoder:
