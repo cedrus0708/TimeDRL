@@ -2,6 +2,7 @@ import os
 import sys
 import csv
 import json
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -101,10 +102,6 @@ class Saver:
             writer.writerow(row)
     
     def _save_results_files(self, results, message=""):
-        results_txt_path = os.path.join(self.path_name, "results.txt")
-        with open(results_txt_path, "w", encoding="utf-8") as f:
-            for key, value in sorted(results.items()):
-                f.write(f"{key}: {value}\n")
 
         results_json_path = os.path.join(self.path_name, "results.json")
         with open(results_json_path, "w", encoding="utf-8") as f:
@@ -120,30 +117,46 @@ class Saver:
         if not os.path.isfile(self.registry_path):
             raise FileNotFoundError(f"Registry csv not found: {self.registry_path}")
 
-        rows = []
-        found = False
+        updated = False
 
-        with open(self.registry_path, "r", newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                if row["experiment_name"] == self.experiment_name:
-                    row["message"] = message
-                    row["status"] = status
-                    row["results"] = json.dumps(results, ensure_ascii=False)
-                    row["args"] = json.dumps(self.args_dict, ensure_ascii=False)
-                    row["run_path"] = self.path_name
-                    found = True
-                rows.append(row)
+        temp_fd, temp_path = tempfile.mkstemp(
+            dir=os.path.dirname(self.registry_path),
+            suffix=".tmp",
+            text=True
+        )
+        os.close(temp_fd)
 
-        if not found:
-            raise RuntimeError(
-                f"Couldn't find experiment to update in registry: {self.experiment_name}"
-            )
+        try:
+            with open(self.registry_path, "r", newline="", encoding="utf-8") as src, \
+                open(temp_path, "w", newline="", encoding="utf-8") as dst:
 
-        with open(self.registry_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(rows)
+                reader = csv.DictReader(src)
+                writer = csv.DictWriter(dst, fieldnames=fieldnames)
+                writer.writeheader()
+
+                for row in reader:
+                    if row.get("run_path") == self.run_path and not updated:
+                        row["message"] = message
+                        row["status"] = status
+                        row["results"] = json.dumps(self._to_jsonable(results), ensure_ascii=False)
+                        row["args"] = json.dumps(self.args_dict, ensure_ascii=False)
+                        row["run_path"] = self.path_name
+                        updated = True
+
+                    writer.writerow({key: row.get(key, "") for key in fieldnames})
+
+            if not updated:
+                os.remove(temp_path)
+                raise RuntimeError(
+                    f"Couldn't find experiment to update in registry. run_path={self.run_path}"
+                )
+
+            os.replace(temp_path, self.registry_path)
+
+        except Exception:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            raise
 
     def save_results(self, results, message=""):
         self._save_results_files(results, message=message)
