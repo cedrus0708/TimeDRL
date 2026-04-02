@@ -485,7 +485,7 @@ class Exp_Forecasting(Exp_Basic):
                 )
 
 
-            #show_plot(local_linear_eval_history)
+            show_plot(local_linear_eval_history, self.saver, pretrain_epoch)
 
             # * At the end of each epoch, we get all the metrics (for both pretrain and linear_eval)
             # ? Pretrain

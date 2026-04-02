@@ -54,7 +54,7 @@ def show_pretrain_plot(pretrain_losses, saver: Saver, pretrain_epoch):
 
     
 
-def show_plot(history, saver: Saver):
+def show_plot(history, saver: Saver, pretrain_epoch):
     metrics = list(history["test"].keys())
     modes = list(history.keys())
 
@@ -85,7 +85,12 @@ def show_plot(history, saver: Saver):
         ax.legend()
 
     plt.tight_layout()
-    plt.savefig(f"{saver.get_path("learning_curves", f"pretrain_loss_curve_{epochs}.png")}_{max(epochs)}.png", dpi=200, bbox_inches="tight")
+    
+    # mentési útvonal
+    save_path = saver.get_path("learning_curves", f"linear_eval_curve_{pretrain_epoch}.png")
+
+    # mentés
+    plt.savefig(save_path, bbox_inches="tight")
     plt.close(fig)
 
-    print(f"Plot saved to: {saver.get_path("learning_curves", f"pretrain_loss_curve_{epochs}.png")}_{max(epochs)}.png")
+    #print(f"Plot saved to: {saver.get_path("learning_curves", f"pretrain_loss_curve_{epochs}.png")}_{max(epochs)}.png")
