@@ -347,7 +347,6 @@ class Exp_Forecasting(Exp_Basic):
                         f"Pretrain Loss: {np.mean(pretrain_losses):.3f}"
                     )
 
-                show_pretrain_plot(pretrain_losses, self.saver)
 
                 # if i == 10:
                 #     break
@@ -358,6 +357,8 @@ class Exp_Forecasting(Exp_Basic):
                 "valid": {"loss": [], "mae": []},
                 "test": {"loss": [], "mae": []},
             }
+
+            show_pretrain_plot(pretrain_losses, self.saver)
 
             self.linear_eval.train()
             if not self.args.disable_freeze_encoder:
