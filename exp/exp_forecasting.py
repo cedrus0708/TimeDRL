@@ -256,11 +256,6 @@ class Exp_Forecasting(Exp_Basic):
         }
         linear_eval_history = {"best_test_mse": [], "best_test_mae": []}
 
-        _, vis_valid_loader, vis_test_loader = load_forecasting_dataloader(
-            self.args, mode="pretrain"
-        )
-        self.visualize_validation(vis_valid_loader)
-
         for pretrain_epoch in range(self.args.pretrain_epochs):
             ###! 1. Pretrain ###
             self.model.train()
@@ -540,10 +535,10 @@ class Exp_Forecasting(Exp_Basic):
         show_final_linear_eval_plot(linear_eval_history, self.saver)
 
 
-        """_, vis_valid_loader, vis_test_loader = load_forecasting_dataloader(
+        _, vis_valid_loader, vis_test_loader = load_forecasting_dataloader(
             self.args, mode="pretrain"
         )
-        self.visualize_validation(vis_valid_loader)"""
+        self.visualize_validation(vis_valid_loader)
 
 
         best_pretrain_epoch = np.nanargmin(pretrain_history["pretrain_loss"])
