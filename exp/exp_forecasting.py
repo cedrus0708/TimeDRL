@@ -535,7 +535,7 @@ class Exp_Forecasting(Exp_Basic):
 
 
         _, vis_valid_loader, vis_test_loader = load_forecasting_dataloader(
-            self.args, mode="visuals"
+            self.args, mode="pretrain"
         )
         self.visualize_validation(vis_valid_loader)
 
