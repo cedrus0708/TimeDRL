@@ -590,25 +590,40 @@ class Exp_Forecasting(Exp_Basic):
 
 
 
-    def visualize_validation(self, val_loader: DataLoader, pretrain_epoch, num_windows=42):
+
+
+
+    def visualize_validation(self, pretrain_epoch, num_windows=48, feature_idx="all"):
         """
-        Makes a short animation showing the model sliding through validation windows.
-        Top panel: input window + true future + predicted future
-        Bottom panel: residual-based anomaly score over windows
+        Show a short animation of the model sliding through validation windows.
+
+        Parameters
+        ----------
+        num_windows : int
+            How many validation windows to animate.
+        feature_idx : "all" | int | list[int]
+            - "all": show all channels
+            - int: show only one channel
+            - list[int]: show selected channels
         """
 
-        # -----------------------------
-        # 2) Collect predictions
-        # -----------------------------
-        batch_size = val_loader.batch_size
+        # --------------------------------------------------
+        # 1) Get validation loader
+        # --------------------------------------------------
+        if hasattr(self, "vali_loader"):
+            val_loader = self.vali_loader
+        elif hasattr(self, "valid_loader"):
+            val_loader = self.valid_loader
+        else:
+            raise RuntimeError("Validation loader not found.")
+
+        batch_size = val_loader.batch_size if val_loader.batch_size is not None else 1
         max_batches = math.ceil(num_windows / batch_size)
 
+        # --------------------------------------------------
+        # 2) Collect predictions
+        # --------------------------------------------------
         xs, ys, preds = self.collect_predictions(val_loader, max_batches=max_batches)
-
-        xs = xs[:num_windows]
-        ys = ys[:num_windows]
-        preds = preds[:num_windows]
-
 
         if xs.numel() == 0:
             raise RuntimeError("No validation predictions were collected.")
@@ -619,114 +634,161 @@ class Exp_Forecasting(Exp_Basic):
             ys = ys.unsqueeze(-1)
             preds = preds.unsqueeze(-1)
 
-        xs = xs.cpu()
-        ys = ys.cpu()
-        preds = preds.cpu()
+        xs = xs[:num_windows].cpu()
+        ys = ys[:num_windows].cpu()
+        preds = preds[:num_windows].cpu()
 
-        n_windows = xs.shape[0]
-        seq_len = xs.shape[1]
+        n_windows, seq_len, n_channels = xs.shape
         pred_len = ys.shape[1]
 
-        # Which feature to plot
-        # If multivariate, this plots the first channel by default.
-        feature_idx = 0
+        # --------------------------------------------------
+        # 3) Decide which channels to show
+        # --------------------------------------------------
+        if feature_idx == "all":
+            plot_channels = list(range(n_channels))
+        elif isinstance(feature_idx, int):
+            plot_channels = [feature_idx]
+        elif isinstance(feature_idx, (list, tuple)):
+            plot_channels = list(feature_idx)
+        else:
+            raise ValueError("feature_idx must be 'all', int, or list/tuple of ints.")
 
-        # -----------------------------
-        # 3) Residual-based anomaly score
-        # -----------------------------
-        residuals = torch.abs(preds - ys)                       # [N, pred_len, C]
-        window_scores = residuals.mean(dim=(1, 2)).numpy()     # [N]
+        for ch in plot_channels:
+            if ch < 0 or ch >= n_channels:
+                raise ValueError(f"Invalid channel index: {ch}. n_channels={n_channels}")
 
-        # -----------------------------
-        # 4) Prepare axes and scales
-        # -----------------------------
+        # --------------------------------------------------
+        # 4) Residual-based anomaly score
+        # --------------------------------------------------
+        # global score: mean residual over all pred steps and all channels
+        residuals = torch.abs(preds - ys)                         # [N, pred_len, C]
+        window_scores = residuals.mean(dim=(1, 2)).numpy()       # [N]
+
+        # optional: per-channel score
+        channel_scores = residuals.mean(dim=1).numpy()           # [N, C]
+
+        # --------------------------------------------------
+        # 5) Prepare arrays
+        # --------------------------------------------------
+        xs_np = xs.numpy()
+        ys_np = ys.numpy()
+        preds_np = preds.numpy()
+
         x_input = np.arange(seq_len)
         x_future = np.arange(seq_len, seq_len + pred_len)
 
-        x_series = xs[:, :, feature_idx].numpy()
-        y_series = ys[:, :, feature_idx].numpy()
-        p_series = preds[:, :, feature_idx].numpy()
+        # --------------------------------------------------
+        # 6) Create figure
+        # --------------------------------------------------
+        n_plot_axes = len(plot_channels)
+        fig_height = 2.5 * n_plot_axes + 2.5
 
-        y_min = min(x_series.min(), y_series.min(), p_series.min())
-        y_max = max(x_series.max(), y_series.max(), p_series.max())
-        pad = 0.05 * max(y_max - y_min, 1e-8)
-        y_min -= pad
-        y_max += pad
-
-        score_max = max(float(np.nanmax(window_scores)), 1e-8)
-
-        # -----------------------------
-        # 5) Build figure
-        # -----------------------------
-        fig, (ax1, ax2) = plt.subplots(
-            2, 1, figsize=(10, 7), gridspec_kw={"height_ratios": [3, 1]}
+        fig, axes = plt.subplots(
+            n_plot_axes + 1,
+            1,
+            figsize=(11, fig_height),
+            gridspec_kw={"height_ratios": [3] * n_plot_axes + [1.5]},
         )
 
-        # Top plot: sliding forecast
-        line_input, = ax1.plot([], [], label="Input window")
-        line_true, = ax1.plot([], [], label="True future")
-        line_pred, = ax1.plot([], [], "--", label="Predicted future")
+        if n_plot_axes + 1 == 2:
+            axes = np.array(axes)
 
-        ax1.axvline(seq_len - 0.5, linestyle=":", alpha=0.7)
-        ax1.set_xlim(0, seq_len + pred_len - 1)
-        ax1.set_ylim(y_min, y_max)
-        ax1.set_xlabel("Relative time")
-        ax1.set_ylabel("Value")
-        ax1.set_title("Validation sliding forecast")
-        ax1.grid(True)
-        ax1.legend(loc="upper left")
+        series_axes = axes[:-1]
+        score_ax = axes[-1]
 
-        info_text = ax1.text(
+        line_handles = []
+
+        for ax, ch in zip(series_axes, plot_channels):
+            channel_x = xs_np[:, :, ch]
+            channel_y = ys_np[:, :, ch]
+            channel_pred = preds_np[:, :, ch]
+
+            y_min = min(channel_x.min(), channel_y.min(), channel_pred.min())
+            y_max = max(channel_x.max(), channel_y.max(), channel_pred.max())
+            pad = 0.05 * max(y_max - y_min, 1e-8)
+
+            line_input, = ax.plot([], [], label="Input window")
+            line_true, = ax.plot([], [], label="True future")
+            line_pred, = ax.plot([], [], "--", label="Predicted future")
+
+            ax.axvline(seq_len - 0.5, linestyle=":", alpha=0.7)
+            ax.set_xlim(0, seq_len + pred_len - 1)
+            ax.set_ylim(y_min - pad, y_max + pad)
+            ax.set_ylabel(f"Channel {ch}")
+            ax.grid(True)
+
+            line_handles.append((line_input, line_true, line_pred, ch))
+
+        series_axes[0].set_title("Validation sliding forecast")
+        series_axes[-1].set_xlabel("Relative time")
+        series_axes[0].legend(loc="upper left")
+
+        info_text = series_axes[0].text(
             0.02,
             0.98,
             "",
-            transform=ax1.transAxes,
+            transform=series_axes[0].transAxes,
             va="top",
             bbox=dict(boxstyle="round", facecolor="white", alpha=0.85),
         )
 
-        # Bottom plot: anomaly score history
-        score_line, = ax2.plot([], [], marker="o", label="Anomaly score")
-        current_point, = ax2.plot([], [], marker="o", linestyle="None", markersize=8)
+        # --------------------------------------------------
+        # 7) Score subplot
+        # --------------------------------------------------
+        global_score_line, = score_ax.plot([], [], marker="o", label="Global anomaly score")
+        current_point, = score_ax.plot([], [], marker="o", linestyle="None", markersize=8)
 
-        ax2.set_xlim(0, n_windows - 1)
-        ax2.set_ylim(0, score_max * 1.1)
-        ax2.set_xlabel("Validation window index")
-        ax2.set_ylabel("Mean |residual|")
-        ax2.set_title("Residual-based anomaly score")
-        ax2.grid(True)
+        score_ax.set_xlim(0, n_windows - 1)
+        score_ax.set_ylim(0, max(float(np.nanmax(window_scores)) * 1.1, 1e-8))
+        score_ax.set_xlabel("Validation window index")
+        score_ax.set_ylabel("Mean |residual|")
+        score_ax.set_title("Residual-based anomaly score (all channels)")
+        score_ax.grid(True)
+        score_ax.legend(loc="upper left")
 
-        # -----------------------------
-        # 6) Animation callbacks
-        # -----------------------------
+        # --------------------------------------------------
+        # 8) Animation callbacks
+        # --------------------------------------------------
         def init():
-            line_input.set_data([], [])
-            line_true.set_data([], [])
-            line_pred.set_data([], [])
-            score_line.set_data([], [])
+            artists = []
+
+            for line_input, line_true, line_pred, _ in line_handles:
+                line_input.set_data([], [])
+                line_true.set_data([], [])
+                line_pred.set_data([], [])
+                artists.extend([line_input, line_true, line_pred])
+
+            global_score_line.set_data([], [])
             current_point.set_data([], [])
             info_text.set_text("")
-            return line_input, line_true, line_pred, score_line, current_point, info_text
+            artists.extend([global_score_line, current_point, info_text])
+
+            return artists
 
         def update(frame_idx):
-            current_x = x_series[frame_idx]
-            current_y = y_series[frame_idx]
-            current_pred = p_series[frame_idx]
-            current_score = window_scores[frame_idx]
+            artists = []
 
-            line_input.set_data(x_input, current_x)
-            line_true.set_data(x_future, current_y)
-            line_pred.set_data(x_future, current_pred)
+            for line_input, line_true, line_pred, ch in line_handles:
+                line_input.set_data(x_input, xs_np[frame_idx, :, ch])
+                line_true.set_data(x_future, ys_np[frame_idx, :, ch])
+                line_pred.set_data(x_future, preds_np[frame_idx, :, ch])
+                artists.extend([line_input, line_true, line_pred])
 
-            score_line.set_data(np.arange(frame_idx + 1), window_scores[: frame_idx + 1])
-            current_point.set_data([frame_idx], [current_score])
+            global_score_line.set_data(np.arange(frame_idx + 1), window_scores[: frame_idx + 1])
+            current_point.set_data([frame_idx], [window_scores[frame_idx]])
+
+            per_channel_text = ", ".join(
+                [f"ch{ch}: {channel_scores[frame_idx, ch]:.4f}" for ch in plot_channels]
+            )
 
             info_text.set_text(
                 f"window: {frame_idx + 1}/{n_windows}\n"
-                f"score: {current_score:.6f}"
+                f"global score: {window_scores[frame_idx]:.6f}\n"
+                f"{per_channel_text}"
             )
 
-            return line_input, line_true, line_pred, score_line, current_point, info_text
+            artists.extend([global_score_line, current_point, info_text])
+            return artists
 
         anim = FuncAnimation(
             fig,
@@ -737,27 +799,24 @@ class Exp_Forecasting(Exp_Basic):
             blit=False,
         )
 
-        # -----------------------------
-        # 7) Save animation
-        # -----------------------------
-        gif_path = self.saver.get_path(
-            "forecast_examples",
-            f"validation_sliding_forecast_predlen_{self.args.pred_len}_{pretrain_epoch}.gif",
-        )
+        # --------------------------------------------------
+        # 9) Save
+        # --------------------------------------------------
+        if feature_idx == "all":
+            file_name = f"validation_sliding_forecast_all_channels_predlen_{self.args.pred_len}_{pretrain_epoch}.gif"
+        elif isinstance(feature_idx, int):
+            file_name = f"validation_sliding_forecast_channel_{feature_idx}_predlen_{self.args.pred_len}_{pretrain_epoch}.gif"
+        else:
+            channel_str = "_".join(map(str, plot_channels))
+            file_name = f"validation_sliding_forecast_channels_{channel_str}_predlen_{self.args.pred_len}_{pretrain_epoch}.gif"
 
-        anim.save(gif_path, writer=PillowWriter(fps=3), dpi=120)
+        save_path = self.saver.get_path("forecast_examples", file_name)
+
+        anim.save(save_path, writer=PillowWriter(fps=3), dpi=120)
         plt.close(fig)
 
-        print(f"Validation visualization saved to: {gif_path}")
-
-        # Optional notebook display
-        try:
-            from IPython.display import Image, display
-            display(Image(filename=gif_path))
-        except Exception:
-            pass
-
-        return gif_path
+        print(f"Validation visualization saved to: {save_path}")
+        return save_path
 
 
     def get_metrics(self, data_loader, use_tqdm=False):
