@@ -7,6 +7,8 @@ import numpy as np
 from rich.table import Table
 from rich.console import Console
 import warnings
+import numpy as np
+import plotly.graph_objects as go
 
 from dataset_loader.forecasting_loader import data_provider, arg_setup_forecasting
 from dataset_loader.classification_loader import (
@@ -105,11 +107,14 @@ def show_dataset_stats(train_dataset, valid_dataset, test_dataset, show_K=True):
         return None
 
 
-def load_forecasting_dataloader(args, mode="pretrain"):
+def load_forecasting_dataloader(args, mode="pretrain", visualize=False):
     assert args.task_name == "forecasting"
     train_dataset, train_loader = data_provider(args, mode, flag="train")
     valid_dataset, valid_loader = data_provider(args, mode, flag="val")
     test_dataset, test_loader = data_provider(args, mode, flag="test")
+
+    if visualize:
+        visualize_validation_dataset(valid_dataset, args)
 
     # Show dataset statistics (N, C, K, T, mean, std)
     print("----------------------------------------")
@@ -117,6 +122,64 @@ def load_forecasting_dataloader(args, mode="pretrain"):
     show_dataset_stats(train_dataset, valid_dataset, test_dataset, show_K=False)
 
     return train_loader, valid_loader, test_loader
+
+
+def visualize_validation_dataset(valid_dataset, args):
+    """
+    Show an interactive plot of the whole validation dataset.
+    Assumes the dataset stores the raw split in a common attribute like data_x.
+    """
+
+    # 1) Try common attribute names
+    if hasattr(valid_dataset, "data_x"):
+        data = valid_dataset.data_x
+    elif hasattr(valid_dataset, "data_y"):
+        data = valid_dataset.data_y
+    elif hasattr(valid_dataset, "x"):
+        data = valid_dataset.x
+    else:
+        raise AttributeError(
+            "Couldn't find raw validation data in the dataset. "
+            "Expected one of: data_x, data_y, x"
+        )
+
+    # Convert to numpy
+    if hasattr(data, "values"):  # pandas DataFrame
+        data = data.values
+    data = np.asarray(data)
+
+    # Ensure shape [T, C]
+    if data.ndim == 1:
+        data = data[:, None]
+
+    T, C = data.shape
+
+    fig = go.Figure()
+
+    for c in range(C):
+        fig.add_trace(
+            go.Scatter(
+                x=np.arange(T),
+                y=data[:, c],
+                mode="lines",
+                name=f"channel_{c}",
+                visible=True if c == 0 else "legendonly",
+            )
+        )
+
+    fig.update_layout(
+        title=f"Validation dataset - {args.data_name}",
+        xaxis_title="Time index",
+        yaxis_title="Value",
+        hovermode="x unified",
+        template="plotly_white",
+        height=500,
+    )
+
+    fig.update_xaxes(rangeslider_visible=True)
+    fig.show()
+
+    print(f"Validation data shape: T={T}, C={C}")
 
 
 def load_classification_dataloader(args, mode="pretrain"):

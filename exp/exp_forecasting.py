@@ -543,9 +543,9 @@ class Exp_Forecasting(Exp_Basic):
         #show_plot(linear_eval_history["best_test_mae"], self.saver, pretrain_epoch)
         show_final_linear_eval_plot(linear_eval_history, self.saver)
 
-
+        print("VISUALIZATION")
         _, vis_valid_loader, vis_test_loader = load_forecasting_dataloader(
-            self.args, mode="pretrain"
+            self.args, mode="pretrain", visualize=True
         )
         self.visualize_validation(vis_valid_loader, "final")
 
