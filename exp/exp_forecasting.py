@@ -20,6 +20,11 @@ from layers.Embed import Patching
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
+import numpy as np
+import torch
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation, PillowWriter
+
 warnings.filterwarnings("ignore")
 
 
@@ -528,6 +533,13 @@ class Exp_Forecasting(Exp_Basic):
         #show_plot(linear_eval_history["best_test_mae"], self.saver, pretrain_epoch)
         show_final_linear_eval_plot(linear_eval_history, self.saver)
 
+
+        _, vis_valid_loader, vis_test_loader = load_forecasting_dataloader(
+            self.args, mode="visuals"
+        )
+        self.visualize_validation(vis_valid_loader)
+
+
         best_pretrain_epoch = np.nanargmin(pretrain_history["pretrain_loss"])
         best_best_test_mse_epoch = np.nanargmin(linear_eval_history["best_test_mse"])
         metrics = {
@@ -560,6 +572,175 @@ class Exp_Forecasting(Exp_Basic):
         self.spent_time = time.time() - start_time
 
         return metrics
+
+    # this function will make a short video showing the model sliding through a validational batch after training.
+    # it will whow the predictions as the window slides forward and the residual-based anomaly-score.
+    #def visualize_validation(self,):
+
+
+
+
+    def visualize_validation(self, val_loader):
+        """
+        Makes a short animation showing the model sliding through validation windows.
+        Top panel: input window + true future + predicted future
+        Bottom panel: residual-based anomaly score over windows
+        """
+
+        # -----------------------------
+        # 2) Collect predictions
+        # -----------------------------
+        xs, ys, preds = self.collect_predictions(val_loader, max_batches=3)
+
+        if xs.numel() == 0:
+            raise RuntimeError("No validation predictions were collected.")
+
+        # Ensure shape: [N, T, C]
+        if xs.ndim == 2:
+            xs = xs.unsqueeze(-1)
+            ys = ys.unsqueeze(-1)
+            preds = preds.unsqueeze(-1)
+
+        xs = xs.cpu()
+        ys = ys.cpu()
+        preds = preds.cpu()
+
+        n_windows = xs.shape[0]
+        seq_len = xs.shape[1]
+        pred_len = ys.shape[1]
+
+        # Which feature to plot
+        # If multivariate, this plots the first channel by default.
+        feature_idx = 0
+
+        # -----------------------------
+        # 3) Residual-based anomaly score
+        # -----------------------------
+        residuals = torch.abs(preds - ys)                       # [N, pred_len, C]
+        window_scores = residuals.mean(dim=(1, 2)).numpy()     # [N]
+
+        # -----------------------------
+        # 4) Prepare axes and scales
+        # -----------------------------
+        x_input = np.arange(seq_len)
+        x_future = np.arange(seq_len, seq_len + pred_len)
+
+        x_series = xs[:, :, feature_idx].numpy()
+        y_series = ys[:, :, feature_idx].numpy()
+        p_series = preds[:, :, feature_idx].numpy()
+
+        y_min = min(x_series.min(), y_series.min(), p_series.min())
+        y_max = max(x_series.max(), y_series.max(), p_series.max())
+        pad = 0.05 * max(y_max - y_min, 1e-8)
+        y_min -= pad
+        y_max += pad
+
+        score_max = max(float(np.nanmax(window_scores)), 1e-8)
+
+        # -----------------------------
+        # 5) Build figure
+        # -----------------------------
+        fig, (ax1, ax2) = plt.subplots(
+            2, 1, figsize=(10, 7), gridspec_kw={"height_ratios": [3, 1]}
+        )
+
+        # Top plot: sliding forecast
+        line_input, = ax1.plot([], [], label="Input window")
+        line_true, = ax1.plot([], [], label="True future")
+        line_pred, = ax1.plot([], [], "--", label="Predicted future")
+
+        ax1.axvline(seq_len - 0.5, linestyle=":", alpha=0.7)
+        ax1.set_xlim(0, seq_len + pred_len - 1)
+        ax1.set_ylim(y_min, y_max)
+        ax1.set_xlabel("Relative time")
+        ax1.set_ylabel("Value")
+        ax1.set_title("Validation sliding forecast")
+        ax1.grid(True)
+        ax1.legend(loc="upper left")
+
+        info_text = ax1.text(
+            0.02,
+            0.98,
+            "",
+            transform=ax1.transAxes,
+            va="top",
+            bbox=dict(boxstyle="round", facecolor="white", alpha=0.85),
+        )
+
+        # Bottom plot: anomaly score history
+        score_line, = ax2.plot([], [], marker="o", label="Anomaly score")
+        current_point, = ax2.plot([], [], marker="o", linestyle="None", markersize=8)
+
+        ax2.set_xlim(0, n_windows - 1)
+        ax2.set_ylim(0, score_max * 1.1)
+        ax2.set_xlabel("Validation window index")
+        ax2.set_ylabel("Mean |residual|")
+        ax2.set_title("Residual-based anomaly score")
+        ax2.grid(True)
+
+        # -----------------------------
+        # 6) Animation callbacks
+        # -----------------------------
+        def init():
+            line_input.set_data([], [])
+            line_true.set_data([], [])
+            line_pred.set_data([], [])
+            score_line.set_data([], [])
+            current_point.set_data([], [])
+            info_text.set_text("")
+            return line_input, line_true, line_pred, score_line, current_point, info_text
+
+        def update(frame_idx):
+            current_x = x_series[frame_idx]
+            current_y = y_series[frame_idx]
+            current_pred = p_series[frame_idx]
+            current_score = window_scores[frame_idx]
+
+            line_input.set_data(x_input, current_x)
+            line_true.set_data(x_future, current_y)
+            line_pred.set_data(x_future, current_pred)
+
+            score_line.set_data(np.arange(frame_idx + 1), window_scores[: frame_idx + 1])
+            current_point.set_data([frame_idx], [current_score])
+
+            info_text.set_text(
+                f"window: {frame_idx + 1}/{n_windows}\n"
+                f"score: {current_score:.6f}"
+            )
+
+            return line_input, line_true, line_pred, score_line, current_point, info_text
+
+        anim = FuncAnimation(
+            fig,
+            update,
+            frames=n_windows,
+            init_func=init,
+            interval=400,
+            blit=False,
+        )
+
+        # -----------------------------
+        # 7) Save animation
+        # -----------------------------
+        gif_path = self.saver.get_path(
+            "forecast_examples",
+            f"validation_sliding_forecast_predlen_{self.args.pred_len}.gif",
+        )
+
+        anim.save(gif_path, writer=PillowWriter(fps=3), dpi=120)
+        plt.close(fig)
+
+        print(f"Validation visualization saved to: {gif_path}")
+
+        # Optional notebook display
+        try:
+            from IPython.display import Image, display
+            display(Image(filename=gif_path))
+        except Exception:
+            pass
+
+        return gif_path
+
 
     def get_metrics(self, data_loader, use_tqdm=False):
         total_mse = 0
