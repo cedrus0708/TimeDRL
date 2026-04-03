@@ -6,6 +6,10 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+import gspread
+from google.colab import auth
+from google.auth import default
+
 class Saver:
     def __init__(self, args): # full path example: /content/drive/MyDrive/itt_most/egyetem/onlab/run_results/forecasting_M_ETTh1/2026_03_21_16_51_21 and inside here: /forecast_examples and /learning_curves
         # Base folder
@@ -32,8 +36,12 @@ class Saver:
         self.forecast_examples_path = os.path.join(self.path_name, "forecast_examples")
         self.learning_curves_path = os.path.join(self.path_name, "learning_curves")
 
+        # Google Sheets registry config
+        self.sheet_id = "1zcLxMAXpxRuy4ZeTHoJTOlm8nVL6P9zI6x6umotRNRk"
+        self.worksheet_name = "registry"
+
         # main path
-        self.registry_path = os.path.join(self.drive_path, "run_registry.csv")
+        #self.registry_path = os.path.join(self.drive_path, "run_registry.csv")
 
 
         # Create folders
@@ -46,6 +54,10 @@ class Saver:
         os.makedirs(self.forecast_examples_path, exist_ok=True)
         os.makedirs(self.learning_curves_path, exist_ok=True)
         
+        # init google sheets
+        self.gc = self._init_google_sheets_client()
+        self.registry_ws = self._get_or_create_registry_worksheet()
+
         # save args locally
         self._save_args_file()
 
@@ -56,6 +68,33 @@ class Saver:
         print("---------------")
         print("EXPERIMENT PATH: ", self.path_name)
         print("---------------")
+
+    def _init_google_sheets_client(self):
+        auth.authenticate_user()
+        creds, _ = default()
+        return gspread.authorize(creds)
+
+    def _get_or_create_registry_worksheet(self):
+        sh = self.gc.open_by_key(self.sheet_id)
+
+        try:
+            ws = sh.worksheet(self.worksheet_name)
+        except gspread.WorksheetNotFound:
+            ws = sh.add_worksheet(
+                title=self.worksheet_name,
+                rows=1000,
+                cols=max(10, len(self._registry_fieldnames()))
+            )
+
+        fieldnames = self._registry_fieldnames()
+        current_header = ws.row_values(1)
+
+        # Ensure header row exists and is correct
+        if current_header != fieldnames:
+            end_col = self._col_letter(len(fieldnames))
+            ws.update(f"A1:{end_col}1", [fieldnames])
+
+        return ws
 
     def _to_jsonable(self, obj):
         if isinstance(obj, Path):
@@ -99,11 +138,28 @@ class Saver:
             "run_path",
         ]
 
+    def _col_letter(self, col_idx):
+        result = ""
+        while col_idx > 0:
+            col_idx, rem = divmod(col_idx - 1, 26)
+            result = chr(65 + rem) + result
+        return result
+
     def _save_args_file(self):
         args_txt_path = os.path.join(self.path_name, "args.txt")
         with open(args_txt_path, "w", encoding="utf-8") as f:
             for key, value in sorted(self.args_dict.items()):
                 f.write(f"{key}: {value}\n")
+
+    def _build_registry_row(self, results="", message="", status="running"):
+        return {
+            "experiment_name": self.experiment_name,
+            "message": message,
+            "status": status,
+            "results": json.dumps(self._to_jsonable(results), ensure_ascii=False),
+            "args": json.dumps(self.args_dict, ensure_ascii=False),
+            "run_path": self.path_name,
+        }
 
     def _create_registry_entry(self):
         file_exists = os.path.isfile(self.registry_path)
@@ -123,6 +179,15 @@ class Saver:
             if not file_exists:
                 writer.writeheader()
             writer.writerow(row)
+
+    def _find_experiment_row(self):
+        try:
+            cell = self.registry_ws.find(self.experiment_name, in_column=1)
+            return cell.row
+        except gspread.exceptions.CellNotFound:
+            raise RuntimeError(
+                f"Couldn't find experiment to update in registry: {self.experiment_name}"
+            )
     
     def _save_results_files(self, results, message=""):
         results_json_path = os.path.join(self.path_name, "results.json")
@@ -134,36 +199,19 @@ class Saver:
             f.write(message)
 
     def _update_registry_entry(self, results, message="", status="finished"):
+        row_idx = self._find_experiment_row()
+
         fieldnames = self._registry_fieldnames()
+        row = self._build_registry_row(results=results, message=message, status=status)
+        values = [row[field] for field in fieldnames]
 
-        if not os.path.isfile(self.registry_path):
-            raise FileNotFoundError(f"Registry csv not found: {self.registry_path}")
-
-        rows = []
-        found = False
-
-        with open(self.registry_path, "r", newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                if row["experiment_name"] == self.experiment_name:
-                    row["message"] = message
-                    row["status"] = status
-                    row["results"] = json.dumps(self._to_jsonable(results), ensure_ascii=False)
-                    row["args"] = json.dumps(self.args_dict, ensure_ascii=False)
-                    row["run_path"] = self.path_name
-                    found = True
-                rows.append(row)
-
-        if not found:
-            raise RuntimeError(
-                f"Couldn't find experiment to update in registry: {self.experiment_name}"
-            )
-
-        with open(self.registry_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(rows)
-
+        end_col = self._col_letter(len(fieldnames))
+        self.registry_ws.update(
+            f"A{row_idx}:{end_col}{row_idx}",
+            [values],
+            value_input_option="RAW"
+        )
+        
     def save_results(self, results, message=""):
         self._save_results_files(results, message=message)
         self._update_registry_entry(results=results, message=message, status="finished")
