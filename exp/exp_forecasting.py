@@ -260,6 +260,12 @@ class Exp_Forecasting(Exp_Basic):
         }
         linear_eval_history = {"best_test_mse": [], "best_test_mae": []}
 
+        print("VISUALIZATION")
+        _, vis_valid_loader, vis_test_loader = load_forecasting_dataloader(
+            self.args, mode="pretrain", visualize=True
+        )
+        self.visualize_validation(vis_valid_loader, "final")
+
         for pretrain_epoch in range(self.args.pretrain_epochs):
             ###! 1. Pretrain ###
             self.model.train()
