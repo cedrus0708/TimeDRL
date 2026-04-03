@@ -593,7 +593,7 @@ class Exp_Forecasting(Exp_Basic):
 
 
 
-    def visualize_validation(self, pretrain_epoch, num_windows=48, feature_idx="all"):
+    def visualize_validation(self, val_loader: DataLoader, pretrain_epoch, num_windows=48, feature_idx="all"):
         """
         Show a short animation of the model sliding through validation windows.
 
@@ -610,13 +610,6 @@ class Exp_Forecasting(Exp_Basic):
         # --------------------------------------------------
         # 1) Get validation loader
         # --------------------------------------------------
-        if hasattr(self, "vali_loader"):
-            val_loader = self.vali_loader
-        elif hasattr(self, "valid_loader"):
-            val_loader = self.valid_loader
-        else:
-            raise RuntimeError("Validation loader not found.")
-
         batch_size = val_loader.batch_size if val_loader.batch_size is not None else 1
         max_batches = math.ceil(num_windows / batch_size)
 
