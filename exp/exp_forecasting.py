@@ -1,3 +1,5 @@
+import math
+
 import torch
 import torch.nn as nn
 from torch import optim
@@ -24,6 +26,8 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter
+
+from torch.utils.data import DataLoader
 
 warnings.filterwarnings("ignore")
 
@@ -586,7 +590,7 @@ class Exp_Forecasting(Exp_Basic):
 
 
 
-    def visualize_validation(self, val_loader, pretrain_epoch):
+    def visualize_validation(self, val_loader: DataLoader, pretrain_epoch, num_windows=42):
         """
         Makes a short animation showing the model sliding through validation windows.
         Top panel: input window + true future + predicted future
@@ -596,7 +600,15 @@ class Exp_Forecasting(Exp_Basic):
         # -----------------------------
         # 2) Collect predictions
         # -----------------------------
-        xs, ys, preds = self.collect_predictions(val_loader, max_batches=3)
+        batch_size = val_loader.batch_size
+        max_batches = math.ceil(num_windows / batch_size)
+
+        xs, ys, preds = self.collect_predictions(val_loader, max_batches=max_batches)
+
+        xs = xs[:num_windows]
+        ys = ys[:num_windows]
+        preds = preds[:num_windows]
+
 
         if xs.numel() == 0:
             raise RuntimeError("No validation predictions were collected.")
