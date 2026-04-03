@@ -530,6 +530,11 @@ class Exp_Forecasting(Exp_Basic):
             )
             print("------------------------------------------------------------------")
 
+            _, vis_valid_loader, vis_test_loader = load_forecasting_dataloader(
+            self.args, mode="pretrain"
+            )
+            self.visualize_validation(vis_valid_loader, pretrain_epoch)
+
         show_pretrain_plot(pretrain_history["pretrain_loss"], self.saver, "last")
         #show_plot(linear_eval_history["best_test_mae"], self.saver, pretrain_epoch)
         show_final_linear_eval_plot(linear_eval_history, self.saver)
@@ -538,7 +543,7 @@ class Exp_Forecasting(Exp_Basic):
         _, vis_valid_loader, vis_test_loader = load_forecasting_dataloader(
             self.args, mode="pretrain"
         )
-        self.visualize_validation(vis_valid_loader)
+        self.visualize_validation(vis_valid_loader, "final")
 
 
         best_pretrain_epoch = np.nanargmin(pretrain_history["pretrain_loss"])
@@ -581,7 +586,7 @@ class Exp_Forecasting(Exp_Basic):
 
 
 
-    def visualize_validation(self, val_loader):
+    def visualize_validation(self, val_loader, pretrain_epoch):
         """
         Makes a short animation showing the model sliding through validation windows.
         Top panel: input window + true future + predicted future
@@ -725,7 +730,7 @@ class Exp_Forecasting(Exp_Basic):
         # -----------------------------
         gif_path = self.saver.get_path(
             "forecast_examples",
-            f"validation_sliding_forecast_predlen_{self.args.pred_len}.gif",
+            f"validation_sliding_forecast_predlen_{self.args.pred_len}_{pretrain_epoch}.gif",
         )
 
         anim.save(gif_path, writer=PillowWriter(fps=3), dpi=120)
