@@ -21,3 +21,6 @@ ray[tune]>=2.9
 
 tsai<0.4.0
 fastcore==1.5.29
+
+plotly
+ipykernel

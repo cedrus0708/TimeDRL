@@ -9,7 +9,8 @@ from pathlib import Path
 class Saver:
     def __init__(self, args): # full path example: /content/drive/MyDrive/itt_most/egyetem/onlab/run_results/forecasting_M_ETTh1/2026_03_21_16_51_21 and inside here: /forecast_examples and /learning_curves
         # Base folder
-        self.drive_path = "/content/drive/MyDrive/itt_most/egyetem/onlab/run_results"
+        #self.drive_path = "/content/drive/MyDrive/itt_most/egyetem/onlab/run_results"
+        self.drive_path = "Z:\\1PROJEKTEK\\onlab\\saves"
 
         # check if drive is mounted
         if not os.path.isdir(self.drive_path):
