@@ -85,12 +85,12 @@ class EarlyStopping:
         self.val_loss_min = np.Inf
         self.delta = delta
 
-    def __call__(self, val_loss, model=None, path=None):
+    def __call__(self, val_loss, model=None, save_path=None):
         score = -val_loss
         if self.best_score is None:
             self.best_score = score
             self.val_loss_min = val_loss
-            self.save_checkpoint(val_loss, model, path)
+            self.save_checkpoint(val_loss, model, save_path)
         elif score < self.best_score + self.delta:
             self.counter += 1
             print(
@@ -102,18 +102,18 @@ class EarlyStopping:
         else:
             self.best_score = score
             self.val_loss_min = val_loss
-            self.save_checkpoint(val_loss, model, path)
+            self.save_checkpoint(val_loss, model, save_path)
             self.counter = 0
 
-    def save_checkpoint(self, val_loss, model, path):
-        if model is None or path is None:
+    def save_checkpoint(self, val_loss, model, save_path):
+        if model is None or save_path is None:
             return
 
         if self.verbose:
             print(
                 f"Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ..."
             )
-        torch.save(model.state_dict(), path + "/" + "checkpoint.pth")
+        torch.save(model.state_dict(), save_path)
 
 
 class StandardScaler:

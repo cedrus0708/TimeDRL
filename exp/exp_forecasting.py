@@ -260,11 +260,11 @@ class Exp_Forecasting(Exp_Basic):
         }
         linear_eval_history = {"best_test_mse": [], "best_test_mae": []}
 
-        print("VISUALIZATION")
+        """print("show validation dataset")
         _, vis_valid_loader, vis_test_loader = load_forecasting_dataloader(
             self.args, mode="pretrain", visualize=True
         )
-        self.visualize_validation(vis_valid_loader, "final")
+        self.visualize_validation(vis_valid_loader, "final")"""
 
         for pretrain_epoch in range(self.args.pretrain_epochs):
             ###! 1. Pretrain ###
@@ -487,7 +487,10 @@ class Exp_Forecasting(Exp_Basic):
 
 
                 # * Early stopping
-                linear_eval_early_stopping(valid_loss)
+
+                checkpoint_file_name = f"linear_model_{pretrain_epoch}_{linear_eval_epoch}_{self.saver.get_unique_name()}.pth"
+                linear_eval_early_stopping(valid_loss, self.model, self.saver.get_path("checkpoints", checkpoint_file_name))
+                
                 if linear_eval_early_stopping.early_stop:
                     print("Early stopping")
                     break
@@ -526,7 +529,8 @@ class Exp_Forecasting(Exp_Basic):
                 linear_eval_history["best_test_mae"].append(best_test_mae)
 
             # * Early stopping
-            model_early_stopping(pretrain_loss)
+            model_checkpoint_file_name = f"model_{pretrain_epoch}_{self.saver.get_unique_name()}.pth"
+            model_early_stopping(pretrain_loss, self.linear_eval, self.saver.get_path("checkpoints", model_checkpoint_file_name))
             if model_early_stopping.early_stop:
                 print("Early stopping")
                 break
@@ -588,15 +592,6 @@ class Exp_Forecasting(Exp_Basic):
         self.spent_time = time.time() - start_time
 
         return metrics
-
-    # this function will make a short video showing the model sliding through a validational batch after training.
-    # it will whow the predictions as the window slides forward and the residual-based anomaly-score.
-    #def visualize_validation(self,):
-
-
-
-
-
 
 
     def visualize_validation(self, val_loader: DataLoader, pretrain_epoch, num_windows=48, feature_idx="all"):

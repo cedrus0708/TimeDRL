@@ -54,8 +54,8 @@ def get_args_from_parser() -> argparse.Namespace:
         "--delete_checkpoints",
         action="store_true",
         help="delete checkpoints after training",
-        # default=False,
-        default=True,
+        default=False,
+        #default=True,
     )
 
     # * data loader

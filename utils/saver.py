@@ -10,7 +10,9 @@ class Saver:
     def __init__(self, args): # full path example: /content/drive/MyDrive/itt_most/egyetem/onlab/run_results/forecasting_M_ETTh1/2026_03_21_16_51_21 and inside here: /forecast_examples and /learning_curves
         # Base folder
         #self.drive_path = "/content/drive/MyDrive/itt_most/egyetem/onlab/run_results"
-        self.drive_path = "Z:\\1PROJEKTEK\\onlab\\saves"
+        #self.drive_path = "Z:\\1PROJEKTEK\\onlab\\saves"
+        self.drive_path = "C:\\Users\\cedru\\Documents\\0egyetem\\Onlab\\baseline\\results"
+        
 
         # check if drive is mounted
         if not os.path.isdir(self.drive_path):
@@ -32,6 +34,7 @@ class Saver:
         # Subfolders
         self.forecast_examples_path = os.path.join(self.path_name, "forecast_examples")
         self.learning_curves_path = os.path.join(self.path_name, "learning_curves")
+        self.checkpoints_path = os.path.join(self.path_name, "checkpoints")
 
         # main path
         self.registry_path = os.path.join(self.drive_path, "run_registry.csv")
@@ -46,6 +49,7 @@ class Saver:
             sys.exit(1)
         os.makedirs(self.forecast_examples_path, exist_ok=True)
         os.makedirs(self.learning_curves_path, exist_ok=True)
+        os.makedirs(self.checkpoints_path, exist_ok=True)
         
         # save args locally
         self._save_args_file()
@@ -181,6 +185,8 @@ class Saver:
             base_path = self.forecast_examples_path
         elif folder_name == "learning_curves":
             base_path = self.learning_curves_path
+        elif folder_name == "checkpoints":
+            base_path = self.checkpoints_path
         else:
             raise ValueError(f"Unknown folder: {folder_name}")
 
@@ -188,3 +194,6 @@ class Saver:
             return base_path
 
         return os.path.join(base_path, file_name)
+
+    def get_unique_name(self):
+        return f"{self.current_task_folder}_{self.current_time_folder}"
