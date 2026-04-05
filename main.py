@@ -421,6 +421,9 @@ def run_exp(args: argparse.Namespace) -> dict:
 
             anomaly_plot(exp, args)
 
+        #exp.model.load_state_dict(torch.load(best_model_path, map_location=exp.device))
+        #exp.linear_eval.load_state_dict(torch.load(best_linear_eval_path, map_location=exp.device))
+
 
         saver.save_results(metrics, message="Stable run.")
 
