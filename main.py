@@ -8,6 +8,7 @@ from copy import deepcopy
 import shutil
 import time
 
+
 from exp.exp_forecasting import Exp_Forecasting
 from exp.exp_classification import Exp_Classification
 from utils.tools import (
@@ -17,6 +18,7 @@ from utils.tools import (
 from dataset_loader.dataset_loader import update_args_from_dataset
 
 from utils.saver import Saver
+from utils.helper import anomaly_plot
 
 
 def get_args_from_parser() -> argparse.Namespace:
@@ -99,6 +101,12 @@ def get_args_from_parser() -> argparse.Namespace:
         type=str,
         default="./checkpoints/",
         help="location of model checkpoints",
+    )
+    parser.add_argument(
+        "--load_model",
+        type=str,
+        default=None,
+        help="location of model to load",
     )
     parser.add_argument(
         "--data_aug",
@@ -397,11 +405,23 @@ def run_exp(args: argparse.Namespace) -> dict:
             raise NotImplementedError
 
         # * Run the experiment
-        if args.train_together:
-            metrics = exp.train_together(use_tqdm=True)
+        if not args.load_model:
+            if args.train_together:
+                metrics = exp.train_together(use_tqdm=True)
+            else:
+                metrics = exp.train(use_tqdm=True)
         else:
-            metrics = exp.train(use_tqdm=True)
-       
+            exp._build_linear_eval()
+
+            exp.model.load_state_dict(torch.load("C:\\Users\\cedru\\Documents\\0egyetem\\Onlab\\baseline\\TimeDRL\\weights\\linear_model_9_forecasting_M_Exchange_2026_04_05_21_21_09.pth", map_location=exp.device))
+            exp.linear_eval.load_state_dict(torch.load("C:\\Users\\cedru\\Documents\\0egyetem\\Onlab\\baseline\\TimeDRL\\weights\\model_0_4_forecasting_M_Exchange_2026_04_05_21_05_19.pth", map_location=exp.device))
+
+            exp.model.eval()
+            exp.linear_eval.eval()
+
+            anomaly_plot(exp, args)
+
+
         saver.save_results(metrics, message="Stable run.")
 
     except KeyboardInterrupt:

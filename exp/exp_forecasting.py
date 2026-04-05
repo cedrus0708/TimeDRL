@@ -488,7 +488,7 @@ class Exp_Forecasting(Exp_Basic):
 
                 # * Early stopping
 
-                checkpoint_file_name = f"linear_model_{pretrain_epoch}_{linear_eval_epoch}_{self.saver.get_unique_name()}.pth"
+                checkpoint_file_name = f"model_{pretrain_epoch}_{linear_eval_epoch}_{self.saver.get_unique_name()}.pth"
                 linear_eval_early_stopping(valid_loss, self.model, self.saver.get_path("checkpoints", checkpoint_file_name))
                 
                 if linear_eval_early_stopping.early_stop:
@@ -529,7 +529,7 @@ class Exp_Forecasting(Exp_Basic):
                 linear_eval_history["best_test_mae"].append(best_test_mae)
 
             # * Early stopping
-            model_checkpoint_file_name = f"model_{pretrain_epoch}_{self.saver.get_unique_name()}.pth"
+            model_checkpoint_file_name = f"linear_model_{pretrain_epoch}_{self.saver.get_unique_name()}.pth"
             model_early_stopping(pretrain_loss, self.linear_eval, self.saver.get_path("checkpoints", model_checkpoint_file_name))
             if model_early_stopping.early_stop:
                 print("Early stopping")
