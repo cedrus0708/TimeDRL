@@ -2,9 +2,12 @@ import torch
 import torch.nn as nn
 import numpy as np
 from math import sqrt
-from utils.masking import TriangularCausalMask, ProbMask
 from einops import rearrange, repeat
 
+try:
+    from TimeDRL.utils.masking import TriangularCausalMask, ProbMask
+except:
+    from utils.masking import TriangularCausalMask, ProbMask
 
 class DSAttention(nn.Module):
     """De-stationary Attention"""

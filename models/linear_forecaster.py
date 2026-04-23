@@ -1,5 +1,9 @@
 import torch.nn as nn
-from layers.einops_modules import RearrangeModule
+
+try:
+    from TimeDRL.layers.einops_modules import RearrangeModule
+except:
+    from layers.einops_modules import RearrangeModule
 
 
 class Model(nn.Module):

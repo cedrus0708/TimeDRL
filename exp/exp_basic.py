@@ -1,7 +1,10 @@
 import os
 import torch
-from models import TimeDRL
 
+try:
+    from TimeDRL.models import TimeDRL
+except:
+    from models import TimeDRL
 
 class Exp_Basic(object):
     def __init__(self, args, saver):

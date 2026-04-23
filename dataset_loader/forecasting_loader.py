@@ -5,9 +5,13 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-from utils.timefeatures import time_features
 from sktime.datasets import load_from_tsfile_to_dataframe
 import warnings
+
+try:
+    from TimeDRL.utils.timefeatures import time_features
+except:
+    from utils.timefeatures import time_features
 
 warnings.filterwarnings("ignore")
 

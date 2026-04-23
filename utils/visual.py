@@ -3,7 +3,10 @@ from rich.console import Console
 import matplotlib.pyplot as plt
 import numpy as np
 
-from utils.saver import Saver
+try:
+    from TimeDRL.utils.saver import Saver
+except:
+    from utils.saver import Saver
 
 
 STYLE_COLOR = {"train": "blue", "valid": "green", "test": "red"}

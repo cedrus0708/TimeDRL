@@ -3,11 +3,18 @@ import torch.nn as nn
 from pathlib import Path
 from einops import rearrange
 
-from layers.Embed import DataEmbedding, Patching
-from layers.RevIN import RevIN
-from layers.einops_modules import RearrangeModule
-from models._load_encoder import load_encoder
-from dataset_loader.augmentation import data_augmentation
+try:
+    from TimeDRL.layers.Embed import DataEmbedding, Patching
+    from TimeDRL.layers.RevIN import RevIN
+    from TimeDRL.layers.einops_modules import RearrangeModule
+    from TimeDRL.models._load_encoder import load_encoder
+    from TimeDRL.dataset_loader.augmentation import data_augmentation
+except:
+    from layers.Embed import DataEmbedding, Patching
+    from layers.RevIN import RevIN
+    from layers.einops_modules import RearrangeModule
+    from models._load_encoder import load_encoder
+    from dataset_loader.augmentation import data_augmentation
 
 
 class Model(nn.Module):

@@ -10,12 +10,18 @@ import warnings
 import numpy as np
 import plotly.graph_objects as go
 
-from dataset_loader.forecasting_loader import data_provider, arg_setup_forecasting
-from dataset_loader.classification_loader import (
-    load_all_datasets,
-    arg_setup_classification,
-)
-
+try:
+    from TimeDRL.dataset_loader.forecasting_loader import data_provider, arg_setup_forecasting
+    from TimeDRL.dataset_loader.classification_loader import (
+        load_all_datasets,
+        arg_setup_classification,
+    )
+except:
+    from dataset_loader.forecasting_loader import data_provider, arg_setup_forecasting
+    from dataset_loader.classification_loader import (
+        load_all_datasets,
+        arg_setup_classification,
+    )
 
 def show_dataset_stats(train_dataset, valid_dataset, test_dataset, show_K=True):
     # * Combine all datasets

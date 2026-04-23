@@ -10,13 +10,22 @@ from tqdm import tqdm
 from sklearn.metrics import accuracy_score, f1_score, cohen_kappa_score
 from copy import deepcopy
 
-from dataset_loader.dataset_loader import load_classification_dataloader
-from exp.exp_basic import Exp_Basic
-from utils.tools import EarlyStopping, adjust_learning_rate
-from utils.tools import print_params, print_formatted_dict
-from utils.visual import show_table, show_plot
-from models import linear_classifier as linear_eval
-from layers.Embed import Patching
+try:
+    from TimeDRL.dataset_loader.dataset_loader import load_classification_dataloader
+    from TimeDRL.exp.exp_basic import Exp_Basic
+    from TimeDRL.utils.tools import EarlyStopping, adjust_learning_rate
+    from TimeDRL.utils.tools import print_params, print_formatted_dict
+    from TimeDRL.utils.visual import show_table, show_plot
+    from TimeDRL.models import linear_classifier as linear_eval
+    from TimeDRL.layers.Embed import Patching
+except:
+    from dataset_loader.dataset_loader import load_classification_dataloader
+    from exp.exp_basic import Exp_Basic
+    from utils.tools import EarlyStopping, adjust_learning_rate
+    from utils.tools import print_params, print_formatted_dict
+    from utils.visual import show_table, show_plot
+    from models import linear_classifier as linear_eval
+    from layers.Embed import Patching
 
 warnings.filterwarnings("ignore")
 

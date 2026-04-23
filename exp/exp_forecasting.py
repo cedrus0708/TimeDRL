@@ -11,13 +11,22 @@ import numpy as np
 from tqdm import tqdm
 from copy import deepcopy
 
-from dataset_loader.dataset_loader import load_forecasting_dataloader
-from exp.exp_basic import Exp_Basic
-from utils.tools import EarlyStopping, adjust_learning_rate
-from utils.tools import print_params, print_formatted_dict
-from utils.visual import show_final_linear_eval_plot, show_pretrain_plot, show_table, show_plot
-from models import linear_forecaster as linear_eval
-from layers.Embed import Patching
+try:
+    from TimeDRL.dataset_loader.dataset_loader import load_forecasting_dataloader
+    from TimeDRL.exp.exp_basic import Exp_Basic
+    from TimeDRL.utils.tools import EarlyStopping, adjust_learning_rate
+    from TimeDRL.utils.tools import print_params, print_formatted_dict
+    from TimeDRL.utils.visual import show_final_linear_eval_plot, show_pretrain_plot, show_table, show_plot
+    from TimeDRL.models import linear_forecaster as linear_eval
+    from TimeDRL.layers.Embed import Patching
+except:
+    from dataset_loader.dataset_loader import load_forecasting_dataloader
+    from exp.exp_basic import Exp_Basic
+    from utils.tools import EarlyStopping, adjust_learning_rate
+    from utils.tools import print_params, print_formatted_dict
+    from utils.visual import show_final_linear_eval_plot, show_pretrain_plot, show_table, show_plot
+    from models import linear_forecaster as linear_eval
+    from layers.Embed import Patching
 
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D

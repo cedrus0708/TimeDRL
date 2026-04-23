@@ -7,18 +7,30 @@ import numpy as np
 from copy import deepcopy
 import shutil
 import time
+import json
 
+try:
+    from TimeDRL.exp.exp_forecasting import Exp_Forecasting
+    from TimeDRL.exp.exp_classification import Exp_Classification
+    from TimeDRL.utils.tools import (
+        set_seed,
+        print_formatted_dict,
+    )
+    from dataset_loader.dataset_loader import update_args_from_dataset
 
-from exp.exp_forecasting import Exp_Forecasting
-from exp.exp_classification import Exp_Classification
-from utils.tools import (
-    set_seed,
-    print_formatted_dict,
-)
-from dataset_loader.dataset_loader import update_args_from_dataset
+    from TimeDRL.utils.saver import Saver
+    from TimeDRL.utils.helper import anomaly_plot
+except:
+    from exp.exp_forecasting import Exp_Forecasting
+    from exp.exp_classification import Exp_Classification
+    from utils.tools import (
+        set_seed,
+        print_formatted_dict,
+    )
+    from dataset_loader.dataset_loader import update_args_from_dataset
 
-from utils.saver import Saver
-from utils.helper import anomaly_plot
+    from utils.saver import Saver
+    from utils.helper import anomaly_plot
 
 
 def get_args_from_parser() -> argparse.Namespace:
@@ -104,9 +116,21 @@ def get_args_from_parser() -> argparse.Namespace:
     )
     parser.add_argument(
         "--load_model",
+        type=bool,
+        default=None,
+        help="decide if load model",
+    )
+    parser.add_argument(
+        "--linear_model",
         type=str,
         default=None,
-        help="location of model to load",
+        help="location of linear model to load",
+    )
+    parser.add_argument(
+        "--base_model",
+        type=str,
+        default=None,
+        help="location of base model to load",
     )
     parser.add_argument(
         "--data_aug",
@@ -405,16 +429,21 @@ def run_exp(args: argparse.Namespace) -> dict:
             raise NotImplementedError
 
         # * Run the experiment
-        if not args.load_model:
+        if not args.load_model or not args.base_model or not args.linear_model:
+            print("TRAINIG MODEL")
             if args.train_together:
                 metrics = exp.train_together(use_tqdm=True)
             else:
                 metrics = exp.train(use_tqdm=True)
         else:
+            print("LOADING MODEL")
             exp._build_linear_eval()
 
-            exp.model.load_state_dict(torch.load("C:\\Users\\cedru\\Documents\\0egyetem\\Onlab\\baseline\\TimeDRL\\weights\\linear_model_9_forecasting_M_Exchange_2026_04_05_21_21_09.pth", map_location=exp.device))
-            exp.linear_eval.load_state_dict(torch.load("C:\\Users\\cedru\\Documents\\0egyetem\\Onlab\\baseline\\TimeDRL\\weights\\model_0_4_forecasting_M_Exchange_2026_04_05_21_05_19.pth", map_location=exp.device))
+            #exp.model.load_state_dict(torch.load("C:\\Users\\cedru\\Documents\\0egyetem\\Onlab\\baseline\\TimeDRL\\weights\\linear_model_9_forecasting_M_Exchange_2026_04_05_21_21_09.pth", map_location=exp.device))
+            #exp.linear_eval.load_state_dict(torch.load("C:\\Users\\cedru\\Documents\\0egyetem\\Onlab\\baseline\\TimeDRL\\weights\\model_0_4_forecasting_M_Exchange_2026_04_05_21_05_19.pth", map_location=exp.device))
+            
+            exp.model.load_state_dict(torch.load(f"C:\\Users\\cedru\\Documents\\0egyetem\\Onlab\\ml_visualizer\\backend\\TimeDRL\\weights\\{args.base_model}", map_location=exp.device))
+            exp.linear_eval.load_state_dict(torch.load(f"C:\\Users\\cedru\\Documents\\0egyetem\\Onlab\\ml_visualizer\\backend\\TimeDRL\\weights\\{args.linear_model}", map_location=exp.device))
 
             exp.model.eval()
             exp.linear_eval.eval()
@@ -591,27 +620,27 @@ if __name__ == "__main__":
     # TODO: copy `config` from `exp_settings_and_results` (be careful with the boolean values)
     tunable_params = {
         "pretrain_optim": "AdamW",
-        "pretrain_learning_rate": 0.000021350270238434573,
-        "pretrain_lradj": "type1",
-        "pretrain_weight_decay": 0.005551156847369134,
+        "pretrain_learning_rate": 0.00009968298929968175,
+        "pretrain_lradj": "type3",
+        "pretrain_weight_decay": 0.00002339524626848013,
         "pretrain_epochs": 10,
-        "contrastive_weight": 0.5,
+        "contrastive_weight": 0.25,
         "linear_eval_optim": "AdamW",
-        "linear_eval_learning_rate": 0.00021350270238434574,
-        "linear_eval_lradj": "warmup",
-        "linear_eval_weight_decay": 0.000016413821615923124,
+        "linear_eval_learning_rate": 0.0009968298929968174,
+        "linear_eval_lradj": "type3",
+        "linear_eval_weight_decay": 0.0002953953189227796,
         "linear_eval_epochs": 30,
-        "pos_embed_type": "learnable",
+        "pos_embed_type": "none",
         "token_embed_type": "conv",
         "token_embed_kernel_size": 3,
         "dropout": 0.2,
         "base_d_model": 64,
         "n_layers": 1,
-        "n_heads": 2,
+        "n_heads": 1,
         "patch_len": 16,
         "stride": 16,
         "enable_channel_independence": True,
-        "seq_len": 512,
+        "seq_len": 512
     }
 
     # Run

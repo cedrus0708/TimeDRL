@@ -11,7 +11,7 @@ class Saver:
         # Base folder
         #self.drive_path = "/content/drive/MyDrive/itt_most/egyetem/onlab/run_results"
         #self.drive_path = "Z:\\1PROJEKTEK\\onlab\\saves"
-        self.drive_path = "C:\\Users\\cedru\\Documents\\0egyetem\\Onlab\\baseline\\results"
+        self.drive_path = args.root_folder / ".." / "results"
         
 
         # check if drive is mounted

@@ -1,12 +1,17 @@
 import torch
 import torch.nn as nn
 from pathlib import Path
-from layers.Transformer_EncDec import Encoder, EncoderLayer
-from layers.SelfAttention_Family import FullAttention, AttentionLayer
-from layers.einops_modules import RearrangeModule
 from einops import rearrange
 from tsai.all import ResBlock, TemporalConvNet
 
+try:
+    from TimeDRL.layers.Transformer_EncDec import Encoder, EncoderLayer
+    from TimeDRL.layers.SelfAttention_Family import FullAttention, AttentionLayer
+    from TimeDRL.layers.einops_modules import RearrangeModule
+except:
+    from layers.Transformer_EncDec import Encoder, EncoderLayer
+    from layers.SelfAttention_Family import FullAttention, AttentionLayer
+    from layers.einops_modules import RearrangeModule
 
 def load_transformer(configs, mask_flag=False):
     return Encoder(
