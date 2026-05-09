@@ -355,7 +355,7 @@ def get_args_from_parser() -> argparse.Namespace:
     parser.add_argument(
         "--save_path",
         type=str,
-        #default="",
+        default="none",
         help="where to save results",
     )
 

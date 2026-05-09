@@ -34,3 +34,11 @@
 └───────┴────────────┴───────────┴───────────┴──────────┘
 
 python main.py --task_name forecasting --data_name Exchange --pred_len_list 24 --features M --use_gpu True --num_workers 0 --batch_size 8 --pretrain_optim AdamW --pretrain_learning_rate 0.0004313260780216993 --pretrain_lradj type1 --pretrain_weight_decay 0.000025287082048327195 --pretrain_epochs 10 --contrastive_weight 0.5 --linear_eval_optim AdamW --linear_eval_learning_rate 0.004313260780216993 --linear_eval_lradj type1 --linear_eval_weight_decay 0.005934677263123874 --linear_eval_epochs 30 --pos_embed_type fixed --token_embed_type conv --token_embed_kernel_size 5 --dropout 0.05 --base_d_model 32 --n_layers 2 --n_heads 1 --patch_len 16 --stride 16 --seq_len 168 --use_amp True
+
+
+python scripts/inject_forecasting_anomalies.py --target_csv ./dataset/weather/weather.csv --source_csv ./dataset/exchange_rate/exchange_rate.csv --out_dir ./dataset/weather_synthetic_anomaly --seed 42 --injection_start_ratio 0.7 --injection_end_ratio 1.0 --n_spikes 30 --n_noise_segments 10 --n_level_shifts 10 --n_scale_segments 10 --n_flatlines 5 --n_dropouts 5 --n_cross_dataset_segments 8
+
+python scripts/visualize_forecasting_anomalies.py --clean_csv ./dataset/forecasting/weather/weather.csv --anomalous_csv ./dataset/weather_synthetic_anomaly/weather_synthetic_anomalies.csv --labels_timestamp_csv ./dataset/weather_synthetic_anomaly/labels_timestamp.csv --events_json ./dataset/weather_synthetic_anomaly/events.json --out_html ./dataset/weather_synthetic_anomaly/anomaly_viewer.html --max_channels 6
+
+
+!python main.py --task_name forecasting --data_name ETTh1 --pred_len_list 24 --features M --use_gpu True --num_workers 0 --batch_size 8 --pretrain_optim AdamW --pretrain_learning_rate 0.000021350270238434573 --pretrain_lradj type1 --pretrain_weight_decay 0.005551156847369134 --pretrain_epochs 10 --contrastive_weight 0.5 --linear_eval_optim AdamW --linear_eval_learning_rate 0.00021350270238434574 --linear_eval_lradj warmup --linear_eval_weight_decay 0.000016413821615923124 --linear_eval_epochs 30 --pos_embed_type learnable --token_embed_type conv --token_embed_kernel_size 3 --dropout 0.2 --base_d_model 64 --n_layers 1 --n_heads 2 --patch_len 16 --stride 16 --enable_channel_independence True --seq_len 512 --save_path /content/drive/MyDrive/itt_most/egyetem/onlab/run_results

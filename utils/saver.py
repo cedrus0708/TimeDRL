@@ -14,7 +14,7 @@ class Saver:
 
         self.drive_path = args.root_folder / ".." / "results"
 
-        if args.save_path:
+        if args.save_path != "none":
             self.drive_path = args.save_path
         
 

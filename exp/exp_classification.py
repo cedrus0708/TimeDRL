@@ -488,6 +488,9 @@ class Exp_Classification(Exp_Basic):
                 # * Show metrics for all the previous epochs
                 show_table(local_linear_eval_history)
 
+                linear_checkpoint_file_name = f"linear_model_{pretrain_epoch}_{linear_eval_epoch}_{self.saver.get_unique_name()}.pth"
+                linear_eval_early_stopping(valid_loss, self.linear_eval, self.saver.get_path("checkpoints", linear_checkpoint_file_name))
+
                 # * Early stopping
                 linear_eval_early_stopping(valid_loss)
                 if linear_eval_early_stopping.early_stop:
@@ -519,6 +522,9 @@ class Exp_Classification(Exp_Basic):
             linear_eval_history["best_test_mf1"].append(best_test_mf1)
             linear_eval_history["best_test_kappa"].append(best_test_kappa)
 
+
+            model_checkpoint_file_name = f"model_{pretrain_epoch}_{self.saver.get_unique_name()}.pth"
+            model_early_stopping(pretrain_loss, self.model, self.saver.get_path("checkpoints", model_checkpoint_file_name))
             # * Early stopping
             model_early_stopping(pretrain_loss)
             if model_early_stopping.early_stop:

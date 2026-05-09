@@ -1,0 +1,1348 @@
+[
+  {
+    "event_id": 0,
+    "anomaly_type": "spike",
+    "start": 38297,
+    "end": 38298,
+    "channels": [
+      "sh (g/kg)",
+      "H2OC (mmol/mol)",
+      "max. wv (m/s)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 1,
+    "anomaly_type": "spike",
+    "start": 45210,
+    "end": 45211,
+    "channels": [
+      "wd (deg)",
+      "raining (s)",
+      "OT"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 2,
+    "anomaly_type": "spike",
+    "start": 44797,
+    "end": 44798,
+    "channels": [
+      "Tdew (degC)",
+      "Tlog (degC)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 3,
+    "anomaly_type": "spike",
+    "start": 49894,
+    "end": 49895,
+    "channels": [
+      "sh (g/kg)",
+      "H2OC (mmol/mol)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 4,
+    "anomaly_type": "spike",
+    "start": 50923,
+    "end": 50924,
+    "channels": [
+      "max. PAR (�mol/m�/s)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 5,
+    "anomaly_type": "spike",
+    "start": 41262,
+    "end": 41263,
+    "channels": [
+      "Tdew (degC)",
+      "raining (s)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 6,
+    "anomaly_type": "spike",
+    "start": 52232,
+    "end": 52233,
+    "channels": [
+      "rain (mm)",
+      "PAR (�mol/m�/s)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 7,
+    "anomaly_type": "spike",
+    "start": 42639,
+    "end": 42640,
+    "channels": [
+      "p (mbar)",
+      "H2OC (mmol/mol)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 8,
+    "anomaly_type": "spike",
+    "start": 47685,
+    "end": 47686,
+    "channels": [
+      "VPdef (mbar)",
+      "rain (mm)",
+      "OT"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 9,
+    "anomaly_type": "spike",
+    "start": 44310,
+    "end": 44311,
+    "channels": [
+      "Tpot (K)",
+      "Tdew (degC)",
+      "H2OC (mmol/mol)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 10,
+    "anomaly_type": "spike",
+    "start": 47476,
+    "end": 47477,
+    "channels": [
+      "Tdew (degC)",
+      "sh (g/kg)",
+      "PAR (�mol/m�/s)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 11,
+    "anomaly_type": "spike",
+    "start": 50044,
+    "end": 50045,
+    "channels": [
+      "SWDR (W/m�)",
+      "PAR (�mol/m�/s)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 12,
+    "anomaly_type": "spike",
+    "start": 40674,
+    "end": 40675,
+    "channels": [
+      "Tpot (K)",
+      "max. wv (m/s)",
+      "PAR (�mol/m�/s)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 13,
+    "anomaly_type": "spike",
+    "start": 49223,
+    "end": 49224,
+    "channels": [
+      "H2OC (mmol/mol)",
+      "rain (mm)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 14,
+    "anomaly_type": "spike",
+    "start": 44141,
+    "end": 44142,
+    "channels": [
+      "p (mbar)",
+      "wv (m/s)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 15,
+    "anomaly_type": "spike",
+    "start": 43836,
+    "end": 43837,
+    "channels": [
+      "H2OC (mmol/mol)",
+      "max. wv (m/s)",
+      "PAR (�mol/m�/s)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 16,
+    "anomaly_type": "spike",
+    "start": 45824,
+    "end": 45825,
+    "channels": [
+      "T (degC)",
+      "wv (m/s)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 17,
+    "anomaly_type": "spike",
+    "start": 37374,
+    "end": 37375,
+    "channels": [
+      "sh (g/kg)",
+      "OT"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 18,
+    "anomaly_type": "spike",
+    "start": 52580,
+    "end": 52581,
+    "channels": [
+      "p (mbar)",
+      "rh (%)",
+      "PAR (�mol/m�/s)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 19,
+    "anomaly_type": "spike",
+    "start": 43753,
+    "end": 43754,
+    "channels": [
+      "Tpot (K)",
+      "wv (m/s)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 20,
+    "anomaly_type": "spike",
+    "start": 47389,
+    "end": 47390,
+    "channels": [
+      "sh (g/kg)",
+      "OT"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 21,
+    "anomaly_type": "spike",
+    "start": 42171,
+    "end": 42172,
+    "channels": [
+      "Tpot (K)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 22,
+    "anomaly_type": "spike",
+    "start": 49084,
+    "end": 49085,
+    "channels": [
+      "H2OC (mmol/mol)",
+      "wd (deg)",
+      "raining (s)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 23,
+    "anomaly_type": "spike",
+    "start": 44749,
+    "end": 44750,
+    "channels": [
+      "Tdew (degC)",
+      "sh (g/kg)",
+      "H2OC (mmol/mol)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 24,
+    "anomaly_type": "spike",
+    "start": 46486,
+    "end": 46487,
+    "channels": [
+      "T (degC)",
+      "Tlog (degC)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 25,
+    "anomaly_type": "spike",
+    "start": 52093,
+    "end": 52094,
+    "channels": [
+      "rho (g/m**3)",
+      "max. PAR (�mol/m�/s)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 26,
+    "anomaly_type": "spike",
+    "start": 48968,
+    "end": 48969,
+    "channels": [
+      "VPmax (mbar)",
+      "raining (s)",
+      "OT"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 27,
+    "anomaly_type": "spike",
+    "start": 38139,
+    "end": 38140,
+    "channels": [
+      "H2OC (mmol/mol)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 28,
+    "anomaly_type": "spike",
+    "start": 38903,
+    "end": 38904,
+    "channels": [
+      "rh (%)",
+      "rain (mm)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 29,
+    "anomaly_type": "spike",
+    "start": 46043,
+    "end": 46044,
+    "channels": [
+      "Tdew (degC)",
+      "H2OC (mmol/mol)"
+    ],
+    "params": {
+      "severity": 8.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 30,
+    "anomaly_type": "noise_segment",
+    "start": 48223,
+    "end": 48276,
+    "channels": [
+      "VPact (mbar)",
+      "sh (g/kg)"
+    ],
+    "params": {
+      "severity": 3.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 31,
+    "anomaly_type": "noise_segment",
+    "start": 39095,
+    "end": 39168,
+    "channels": [
+      "p (mbar)",
+      "VPdef (mbar)",
+      "OT"
+    ],
+    "params": {
+      "severity": 3.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 32,
+    "anomaly_type": "noise_segment",
+    "start": 47129,
+    "end": 47162,
+    "channels": [
+      "Tdew (degC)",
+      "max. PAR (�mol/m�/s)"
+    ],
+    "params": {
+      "severity": 3.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 33,
+    "anomaly_type": "noise_segment",
+    "start": 39467,
+    "end": 39518,
+    "channels": [
+      "Tdew (degC)",
+      "sh (g/kg)",
+      "PAR (�mol/m�/s)"
+    ],
+    "params": {
+      "severity": 3.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 34,
+    "anomaly_type": "noise_segment",
+    "start": 41600,
+    "end": 41684,
+    "channels": [
+      "Tdew (degC)"
+    ],
+    "params": {
+      "severity": 3.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 35,
+    "anomaly_type": "noise_segment",
+    "start": 40302,
+    "end": 40327,
+    "channels": [
+      "sh (g/kg)",
+      "wd (deg)"
+    ],
+    "params": {
+      "severity": 3.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 36,
+    "anomaly_type": "noise_segment",
+    "start": 43317,
+    "end": 43365,
+    "channels": [
+      "T (degC)",
+      "raining (s)",
+      "max. PAR (�mol/m�/s)"
+    ],
+    "params": {
+      "severity": 3.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 37,
+    "anomaly_type": "noise_segment",
+    "start": 51465,
+    "end": 51494,
+    "channels": [
+      "VPact (mbar)",
+      "sh (g/kg)"
+    ],
+    "params": {
+      "severity": 3.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 38,
+    "anomaly_type": "noise_segment",
+    "start": 40073,
+    "end": 40148,
+    "channels": [
+      "rho (g/m**3)",
+      "rain (mm)",
+      "Tlog (degC)"
+    ],
+    "params": {
+      "severity": 3.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 39,
+    "anomaly_type": "noise_segment",
+    "start": 42917,
+    "end": 43011,
+    "channels": [
+      "VPmax (mbar)",
+      "wd (deg)"
+    ],
+    "params": {
+      "severity": 3.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 40,
+    "anomaly_type": "level_shift",
+    "start": 40477,
+    "end": 40536,
+    "channels": [
+      "T (degC)",
+      "max. wv (m/s)",
+      "Tlog (degC)"
+    ],
+    "params": {
+      "severity": 5.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 41,
+    "anomaly_type": "level_shift",
+    "start": 41333,
+    "end": 41421,
+    "channels": [
+      "T (degC)",
+      "rain (mm)"
+    ],
+    "params": {
+      "severity": 5.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 42,
+    "anomaly_type": "level_shift",
+    "start": 48656,
+    "end": 48723,
+    "channels": [
+      "sh (g/kg)",
+      "H2OC (mmol/mol)",
+      "PAR (�mol/m�/s)"
+    ],
+    "params": {
+      "severity": 5.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 43,
+    "anomaly_type": "level_shift",
+    "start": 42370,
+    "end": 42407,
+    "channels": [
+      "wd (deg)",
+      "SWDR (W/m�)"
+    ],
+    "params": {
+      "severity": 5.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 44,
+    "anomaly_type": "level_shift",
+    "start": 42724,
+    "end": 42795,
+    "channels": [
+      "sh (g/kg)",
+      "wd (deg)"
+    ],
+    "params": {
+      "severity": 5.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 45,
+    "anomaly_type": "level_shift",
+    "start": 48521,
+    "end": 48536,
+    "channels": [
+      "H2OC (mmol/mol)",
+      "wv (m/s)"
+    ],
+    "params": {
+      "severity": 5.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 46,
+    "anomaly_type": "level_shift",
+    "start": 38955,
+    "end": 38996,
+    "channels": [
+      "Tdew (degC)",
+      "VPdef (mbar)"
+    ],
+    "params": {
+      "severity": 5.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 47,
+    "anomaly_type": "level_shift",
+    "start": 51004,
+    "end": 51035,
+    "channels": [
+      "Tpot (K)",
+      "VPmax (mbar)",
+      "wv (m/s)"
+    ],
+    "params": {
+      "severity": 5.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 48,
+    "anomaly_type": "level_shift",
+    "start": 43123,
+    "end": 43151,
+    "channels": [
+      "VPact (mbar)"
+    ],
+    "params": {
+      "severity": 5.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 49,
+    "anomaly_type": "level_shift",
+    "start": 50819,
+    "end": 50847,
+    "channels": [
+      "Tdew (degC)",
+      "rain (mm)",
+      "OT"
+    ],
+    "params": {
+      "severity": 5.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 50,
+    "anomaly_type": "scale_segment",
+    "start": 49528,
+    "end": 49580,
+    "channels": [
+      "sh (g/kg)"
+    ],
+    "params": {
+      "min_factor": 2.0,
+      "max_factor": 4.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 51,
+    "anomaly_type": "scale_segment",
+    "start": 48041,
+    "end": 48076,
+    "channels": [
+      "rain (mm)",
+      "SWDR (W/m�)"
+    ],
+    "params": {
+      "min_factor": 2.0,
+      "max_factor": 4.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 52,
+    "anomaly_type": "scale_segment",
+    "start": 46071,
+    "end": 46088,
+    "channels": [
+      "Tpot (K)",
+      "rh (%)",
+      "SWDR (W/m�)"
+    ],
+    "params": {
+      "min_factor": 2.0,
+      "max_factor": 4.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 53,
+    "anomaly_type": "scale_segment",
+    "start": 51198,
+    "end": 51279,
+    "channels": [
+      "Tdew (degC)",
+      "VPact (mbar)",
+      "OT"
+    ],
+    "params": {
+      "min_factor": 2.0,
+      "max_factor": 4.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 54,
+    "anomaly_type": "scale_segment",
+    "start": 51107,
+    "end": 51130,
+    "channels": [
+      "wv (m/s)"
+    ],
+    "params": {
+      "min_factor": 2.0,
+      "max_factor": 4.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 55,
+    "anomaly_type": "scale_segment",
+    "start": 46774,
+    "end": 46850,
+    "channels": [
+      "p (mbar)",
+      "max. PAR (�mol/m�/s)"
+    ],
+    "params": {
+      "min_factor": 2.0,
+      "max_factor": 4.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 56,
+    "anomaly_type": "scale_segment",
+    "start": 49323,
+    "end": 49419,
+    "channels": [
+      "H2OC (mmol/mol)",
+      "raining (s)"
+    ],
+    "params": {
+      "min_factor": 2.0,
+      "max_factor": 4.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 57,
+    "anomaly_type": "scale_segment",
+    "start": 44639,
+    "end": 44690,
+    "channels": [
+      "H2OC (mmol/mol)",
+      "wv (m/s)"
+    ],
+    "params": {
+      "min_factor": 2.0,
+      "max_factor": 4.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 58,
+    "anomaly_type": "scale_segment",
+    "start": 48117,
+    "end": 48175,
+    "channels": [
+      "rh (%)"
+    ],
+    "params": {
+      "min_factor": 2.0,
+      "max_factor": 4.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 59,
+    "anomaly_type": "scale_segment",
+    "start": 50618,
+    "end": 50697,
+    "channels": [
+      "max. PAR (�mol/m�/s)"
+    ],
+    "params": {
+      "min_factor": 2.0,
+      "max_factor": 4.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 60,
+    "anomaly_type": "flatline",
+    "start": 43228,
+    "end": 43250,
+    "channels": [
+      "VPmax (mbar)",
+      "max. wv (m/s)",
+      "SWDR (W/m�)"
+    ],
+    "params": {},
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 61,
+    "anomaly_type": "flatline",
+    "start": 45666,
+    "end": 45714,
+    "channels": [
+      "rh (%)",
+      "VPmax (mbar)"
+    ],
+    "params": {},
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 62,
+    "anomaly_type": "flatline",
+    "start": 39966,
+    "end": 39997,
+    "channels": [
+      "T (degC)",
+      "max. wv (m/s)",
+      "Tlog (degC)"
+    ],
+    "params": {},
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 63,
+    "anomaly_type": "flatline",
+    "start": 36936,
+    "end": 36953,
+    "channels": [
+      "Tdew (degC)",
+      "max. wv (m/s)",
+      "raining (s)"
+    ],
+    "params": {},
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 64,
+    "anomaly_type": "flatline",
+    "start": 52287,
+    "end": 52368,
+    "channels": [
+      "Tlog (degC)"
+    ],
+    "params": {},
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 65,
+    "anomaly_type": "dropout",
+    "start": 47541,
+    "end": 47630,
+    "channels": [
+      "rh (%)",
+      "sh (g/kg)",
+      "raining (s)"
+    ],
+    "params": {
+      "fill_value": 0.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 66,
+    "anomaly_type": "dropout",
+    "start": 45743,
+    "end": 45784,
+    "channels": [
+      "p (mbar)"
+    ],
+    "params": {
+      "fill_value": 0.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 67,
+    "anomaly_type": "dropout",
+    "start": 52428,
+    "end": 52476,
+    "channels": [
+      "VPmax (mbar)",
+      "wd (deg)"
+    ],
+    "params": {
+      "fill_value": 0.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 68,
+    "anomaly_type": "dropout",
+    "start": 50119,
+    "end": 50196,
+    "channels": [
+      "rain (mm)"
+    ],
+    "params": {
+      "fill_value": 0.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 69,
+    "anomaly_type": "dropout",
+    "start": 45923,
+    "end": 45935,
+    "channels": [
+      "VPdef (mbar)",
+      "OT"
+    ],
+    "params": {
+      "fill_value": 0.0
+    },
+    "source_dataset": null,
+    "source_start": null,
+    "source_end": null
+  },
+  {
+    "event_id": 70,
+    "anomaly_type": "cross_dataset_segment",
+    "start": 40185,
+    "end": 40200,
+    "channels": [
+      "max. PAR (�mol/m�/s)"
+    ],
+    "params": {
+      "severity": 4.0,
+      "context": 96,
+      "source_numeric_columns": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "OT"
+      ]
+    },
+    "source_dataset": "./dataset/forecasting/exchange_rate/exchange_rate.csv",
+    "source_start": 3930,
+    "source_end": 3945
+  },
+  {
+    "event_id": 71,
+    "anomaly_type": "cross_dataset_segment",
+    "start": 42209,
+    "end": 42289,
+    "channels": [
+      "Tpot (K)",
+      "rh (%)",
+      "VPdef (mbar)"
+    ],
+    "params": {
+      "severity": 4.0,
+      "context": 96,
+      "source_numeric_columns": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "OT"
+      ]
+    },
+    "source_dataset": "./dataset/forecasting/exchange_rate/exchange_rate.csv",
+    "source_start": 1467,
+    "source_end": 1547
+  },
+  {
+    "event_id": 72,
+    "anomaly_type": "cross_dataset_segment",
+    "start": 46986,
+    "end": 47071,
+    "channels": [
+      "Tpot (K)",
+      "wd (deg)",
+      "OT"
+    ],
+    "params": {
+      "severity": 4.0,
+      "context": 96,
+      "source_numeric_columns": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "OT"
+      ]
+    },
+    "source_dataset": "./dataset/forecasting/exchange_rate/exchange_rate.csv",
+    "source_start": 4897,
+    "source_end": 4982
+  },
+  {
+    "event_id": 73,
+    "anomaly_type": "cross_dataset_segment",
+    "start": 48355,
+    "end": 48451,
+    "channels": [
+      "raining (s)"
+    ],
+    "params": {
+      "severity": 4.0,
+      "context": 96,
+      "source_numeric_columns": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "OT"
+      ]
+    },
+    "source_dataset": "./dataset/forecasting/exchange_rate/exchange_rate.csv",
+    "source_start": 7264,
+    "source_end": 7360
+  },
+  {
+    "event_id": 74,
+    "anomaly_type": "cross_dataset_segment",
+    "start": 39625,
+    "end": 39672,
+    "channels": [
+      "sh (g/kg)"
+    ],
+    "params": {
+      "severity": 4.0,
+      "context": 96,
+      "source_numeric_columns": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "OT"
+      ]
+    },
+    "source_dataset": "./dataset/forecasting/exchange_rate/exchange_rate.csv",
+    "source_start": 3498,
+    "source_end": 3545
+  },
+  {
+    "event_id": 75,
+    "anomaly_type": "cross_dataset_segment",
+    "start": 49444,
+    "end": 49480,
+    "channels": [
+      "Tlog (degC)"
+    ],
+    "params": {
+      "severity": 4.0,
+      "context": 96,
+      "source_numeric_columns": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "OT"
+      ]
+    },
+    "source_dataset": "./dataset/forecasting/exchange_rate/exchange_rate.csv",
+    "source_start": 4069,
+    "source_end": 4105
+  },
+  {
+    "event_id": 76,
+    "anomaly_type": "cross_dataset_segment",
+    "start": 41075,
+    "end": 41141,
+    "channels": [
+      "Tpot (K)",
+      "VPmax (mbar)"
+    ],
+    "params": {
+      "severity": 4.0,
+      "context": 96,
+      "source_numeric_columns": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "OT"
+      ]
+    },
+    "source_dataset": "./dataset/forecasting/exchange_rate/exchange_rate.csv",
+    "source_start": 2073,
+    "source_end": 2139
+  },
+  {
+    "event_id": 77,
+    "anomaly_type": "cross_dataset_segment",
+    "start": 51538,
+    "end": 51593,
+    "channels": [
+      "sh (g/kg)"
+    ],
+    "params": {
+      "severity": 4.0,
+      "context": 96,
+      "source_numeric_columns": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "OT"
+      ]
+    },
+    "source_dataset": "./dataset/forecasting/exchange_rate/exchange_rate.csv",
+    "source_start": 6378,
+    "source_end": 6433
+  }
+]
