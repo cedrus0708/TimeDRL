@@ -11,7 +11,11 @@ class Saver:
         # Base folder
         #self.drive_path = "/content/drive/MyDrive/itt_most/egyetem/onlab/run_results"
         #self.drive_path = "Z:\\1PROJEKTEK\\onlab\\saves"
+
         self.drive_path = args.root_folder / ".." / "results"
+
+        if args.save_path:
+            self.drive_path = args.save_path
         
 
         # check if drive is mounted

@@ -352,6 +352,13 @@ def get_args_from_parser() -> argparse.Namespace:
     # * GPU
     parser.add_argument("--use_gpu", type=bool, default=True, help="use gpu")
 
+    parser.add_argument(
+        "--save_path",
+        type=str,
+        #default="",
+        help="where to save results",
+    )
+
     args, _ = parser.parse_known_args()
 
     # * Not used
