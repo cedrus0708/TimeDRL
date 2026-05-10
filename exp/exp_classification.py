@@ -105,7 +105,7 @@ class Exp_Classification(Exp_Basic):
             lr=self.args.pretrain_learning_rate,
             weight_decay=self.args.pretrain_weight_decay,
         )
-        shared_early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
+        shared_early_stopping = EarlyStopping(patience=self.args.patience, verbose=True, delta=self.args.delta)
 
         # Automatic Mixed Precision (some op. are fp32, some are fp16)
         scaler = torch.cuda.amp.GradScaler(enabled=self.args.use_amp)  # type: ignore
@@ -274,10 +274,7 @@ class Exp_Classification(Exp_Basic):
             lr=self.args.linear_eval_learning_rate,
             weight_decay=self.args.linear_eval_weight_decay,
         )
-        model_early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
-        linear_eval_early_stopping = EarlyStopping(
-            patience=self.args.patience, verbose=True
-        )
+        model_early_stopping = EarlyStopping(patience=self.args.patience, verbose=True, delta=self.args.delta)
 
         # Automatic Mixed Precision (some op. are fp32, some are fp16)
         scaler = torch.cuda.amp.GradScaler(enabled=self.args.use_amp)  # type: ignore
@@ -294,6 +291,11 @@ class Exp_Classification(Exp_Basic):
             "best_test_kappa": [],
         }
         for pretrain_epoch in range(self.args.pretrain_epochs):
+
+            linear_eval_early_stopping = EarlyStopping(
+                patience=self.args.patience, verbose=True, delta=self.args.delta
+            )
+
             ###! 1. Pretrain ###
             self.model.train()
             for param in self.model.parameters():
@@ -494,7 +496,7 @@ class Exp_Classification(Exp_Basic):
                 # * Early stopping
                 linear_eval_early_stopping(valid_loss)
                 if linear_eval_early_stopping.early_stop:
-                    print("Early stopping")
+                    print("Linear early stopping")
                     break
 
                 # * Adjust learning rate
@@ -528,7 +530,7 @@ class Exp_Classification(Exp_Basic):
             # * Early stopping
             model_early_stopping(pretrain_loss)
             if model_early_stopping.early_stop:
-                print("Early stopping")
+                print("Pretrain early stopping")
                 break
 
             # * Adjust learning rate

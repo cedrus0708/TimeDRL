@@ -96,7 +96,7 @@ class Exp_Forecasting(Exp_Basic):
             lr=self.args.pretrain_learning_rate,
             weight_decay=self.args.pretrain_weight_decay,
         )
-        shared_early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
+        shared_early_stopping = EarlyStopping(patience=self.args.patience, verbose=True, delta=self.args.delta)
 
         # Automatic Mixed Precision (some op. are fp32, some are fp16)
         scaler = torch.cuda.amp.GradScaler(enabled=self.args.use_amp)  # type: ignore
@@ -231,7 +231,7 @@ class Exp_Forecasting(Exp_Basic):
         )
 
         # Define the linear_eval model (we've already defined the encoder in the previous step)
-        self._build_linear_eval()
+        #self._build_linear_eval()
 
         # Define the patching layer (for the predictive task)
         patching = Patching(
@@ -248,15 +248,12 @@ class Exp_Forecasting(Exp_Basic):
             lr=self.args.pretrain_learning_rate,
             weight_decay=self.args.pretrain_weight_decay,
         )
-        linear_eval_optim = getattr(optim, self.args.linear_eval_optim)(
-            self.linear_eval.parameters(),
-            lr=self.args.linear_eval_learning_rate,
-            weight_decay=self.args.linear_eval_weight_decay,
-        )
-        model_early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
-        linear_eval_early_stopping = EarlyStopping(
-            patience=self.args.patience, verbose=True
-        )
+        #linear_eval_optim = getattr(optim, self.args.linear_eval_optim)(
+        #    self.linear_eval.parameters(),
+        #    lr=self.args.linear_eval_learning_rate,
+        #    weight_decay=self.args.linear_eval_weight_decay,
+        #)
+        model_early_stopping = EarlyStopping(patience=self.args.patience, verbose=True, delta=self.args.delta)
 
         # Automatic Mixed Precision (some op. are fp32, some are fp16)
         scaler = torch.cuda.amp.GradScaler(enabled=self.args.use_amp)  # type: ignore
@@ -276,6 +273,11 @@ class Exp_Forecasting(Exp_Basic):
         self.visualize_validation(vis_valid_loader, "final")"""
 
         for pretrain_epoch in range(self.args.pretrain_epochs):
+
+            linear_eval_early_stopping = EarlyStopping(
+                patience=self.args.patience, verbose=True, delta=self.args.delta
+            )
+
             ###! 1. Pretrain ###
             self.model.train()
             for param in self.model.parameters():
@@ -377,6 +379,15 @@ class Exp_Forecasting(Exp_Basic):
                 #     break
 
             ###! 2. Linear Eval ###
+
+            self._build_linear_eval()
+
+            linear_eval_optim = getattr(optim, self.args.linear_eval_optim)(
+                self.linear_eval.parameters(),
+                lr=self.args.linear_eval_learning_rate,
+                weight_decay=self.args.linear_eval_weight_decay,
+            )
+
             local_linear_eval_history = {
                 # "train": {"loss": [], "mae": []},
                 "valid": {"loss": [], "mae": []},
@@ -501,7 +512,7 @@ class Exp_Forecasting(Exp_Basic):
                 linear_eval_early_stopping(valid_loss, self.linear_eval, self.saver.get_path("checkpoints", linear_checkpoint_file_name))
                 
                 if linear_eval_early_stopping.early_stop:
-                    print("Early stopping")
+                    print("Linear eval early stopping")
                     break
 
                 # * Adjust learning rate
@@ -541,7 +552,7 @@ class Exp_Forecasting(Exp_Basic):
             model_checkpoint_file_name = f"model_{pretrain_epoch}_{self.saver.get_unique_name()}.pth"
             model_early_stopping(pretrain_loss, self.model, self.saver.get_path("checkpoints", model_checkpoint_file_name))
             if model_early_stopping.early_stop:
-                print("Early stopping")
+                print("Pretrain early stopping")
                 break
 
             # * Adjust learning rate
