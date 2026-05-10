@@ -42,3 +42,85 @@ python scripts/visualize_forecasting_anomalies.py --clean_csv ./dataset/forecast
 
 
 !python main.py --task_name forecasting --data_name ETTh1 --pred_len_list 24 --features M --use_gpu True --num_workers 0 --batch_size 8 --pretrain_optim AdamW --pretrain_learning_rate 0.000021350270238434573 --pretrain_lradj type1 --pretrain_weight_decay 0.005551156847369134 --pretrain_epochs 10 --contrastive_weight 0.5 --linear_eval_optim AdamW --linear_eval_learning_rate 0.00021350270238434574 --linear_eval_lradj warmup --linear_eval_weight_decay 0.000016413821615923124 --linear_eval_epochs 30 --pos_embed_type learnable --token_embed_type conv --token_embed_kernel_size 3 --dropout 0.2 --base_d_model 64 --n_layers 1 --n_heads 2 --patch_len 16 --stride 16 --enable_channel_independence True --seq_len 512 --save_path /content/drive/MyDrive/itt_most/egyetem/onlab/run_results
+
+
+
+python ood_utils/embedding_bank.py --task_name forecasting --data_name Exchange  --features M --model TimeDRL --checkpoint_path ./weights/model_0_4_forecasting_M_Exchange_2026_04_05_21_05_19.pth --output_dir ./embedding_banks --bank_split test --mode pretrain --embedding_view first --batch_size 128  --pretrain_optim AdamW --pretrain_learning_rate 0.0004313260780216993 --pretrain_lradj type1 --pretrain_weight_decay 0.000025287082048327195 --pretrain_epochs 10 --contrastive_weight 0.5 --linear_eval_optim AdamW --linear_eval_learning_rate 0.004313260780216993 --linear_eval_lradj type1 --linear_eval_weight_decay 0.005934677263123874 --linear_eval_epochs 30 --pos_embed_type fixed --token_embed_type conv --token_embed_kernel_size 5 --dropout 0.05 --base_d_model 32 --n_layers 2 --n_heads 1 --patch_len 16 --stride 16 --seq_len 168 
+
+!python main.py
+--task_name forecasting \
+--data_name Exchange \
+--pred_len_list 24 \
+--features M \
+--use_gpu True \
+--num_workers 0 \
+--batch_size 8 \
+--use_amp True \
+--pretrain_optim AdamW \
+--pretrain_learning_rate 0.0004313260780216993 \
+--pretrain_lradj type1 \
+--pretrain_weight_decay 0.000025287082048327195 \
+--pretrain_epochs 10 \
+--contrastive_weight 0.5 \
+--linear_eval_optim AdamW \
+--linear_eval_learning_rate 0.004313260780216993 \
+--linear_eval_lradj type1 \
+--linear_eval_weight_decay 0.005934677263123874 \
+--linear_eval_epochs 30 \
+--pos_embed_type fixed \
+--token_embed_type conv \
+--token_embed_kernel_size 5 \
+--dropout 0.05 \
+--base_d_model 32 \
+--n_layers 2 \
+--n_heads 1 \
+--patch_len 16 \
+--stride 16 \
+--enable_channel_independence True \
+--seq_len 168 \
+--save_path /content/drive/MyDrive/itt_most/egyetem/onlab/run_results
+
+
+
+
+!python main.py \
+--task_name forecasting \
+--data_name Exchange \
+--pred_len_list 24 \
+--features M \
+--use_gpu True \
+--num_workers 0 \
+--batch_size 8 \
+--use_amp True \
+--pretrain_optim AdamW \
+--pretrain_learning_rate 0.000021350270238434573 \
+--pretrain_lradj type1 \
+--pretrain_weight_decay 0.005551156847369134 \
+--pretrain_epochs 10 \
+--contrastive_weight 0.5 \
+--linear_eval_optim AdamW \
+--linear_eval_learning_rate 0.00021350270238434574 \
+--linear_eval_lradj warmup \
+--linear_eval_weight_decay 0.000016413821615923124 \
+--linear_eval_epochs 30 \
+--pos_embed_type learnable \
+--token_embed_type conv \
+--token_embed_kernel_size 3 \
+--dropout 0.2 \
+--base_d_model 64 \
+--n_layers 1 \
+--n_heads 2 \
+--patch_len 16 \
+--stride 16 \
+--enable_channel_independence True \
+--seq_len 512 \
+--save_path /content/drive/MyDrive/itt_most/egyetem/onlab/run_results
+
+
+./embedding_detectors/forecasting_Exchange_TimeDRL_train_first_embedding_bank.scores.npz
+./embedding_detectors/forecasting_Exchange_TimeDRL_train_first_embedding_bank.instance_detector.npz
+./embedding_detectors/forecasting_Exchange_TimeDRL_train_first_embedding_bank.timestamp_detector.npz
+
+python ood_utils/inspect_embedding_scores.py --scores_path ./embedding_detectors/forecasting_Exchange_TimeDRL_train_first_embedding_bank.timestamp_detector.npz --output_dir ./embedding_score_reports --top_k 20
+
+python main.py --model_for HAR --batch_size 8 --print_registry_config --save_path /content/drive/MyDrive/itt_most/egyetem/onlab/run_results

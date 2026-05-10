@@ -1,0 +1,39 @@
+{
+  "instance_detector": {
+    "k": 5,
+    "metric": "euclidean",
+    "score_mode": "mean",
+    "normalization": "standardize",
+    "threshold_quantile": 0.95,
+    "batch_size": 1024,
+    "eps": 1e-12,
+    "threshold": 3.09941607713699,
+    "reference_shape": [
+      40960,
+      32
+    ],
+    "calibration_scores_shape": [
+      40960
+    ]
+  },
+  "timestamp_detector": {
+    "k": 5,
+    "metric": "euclidean",
+    "score_mode": "mean",
+    "normalization": "standardize",
+    "threshold_quantile": 0.95,
+    "batch_size": 1024,
+    "eps": 1e-12,
+    "threshold": 3.6186697840690614,
+    "reference_shape": [
+      50000,
+      32
+    ],
+    "calibration_scores_shape": [
+      50000
+    ]
+  },
+  "extra": {
+    "reference_bank": "C:\\Users\\cedru\\Documents\\0egyetem\\Onlab\\ml_visualizer\\backend\\TimeDRL\\embedding_banks\\forecasting_Exchange_TimeDRL_train_first_embedding_bank.npz"
+  }
+}

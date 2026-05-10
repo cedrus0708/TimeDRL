@@ -1,13 +1,15 @@
 import os
 import torch
 
+from utils.saver import Saver
+
 try:
     from TimeDRL.models import TimeDRL
 except:
     from models import TimeDRL
 
 class Exp_Basic(object):
-    def __init__(self, args, saver):
+    def __init__(self, args, saver = None):
         args = self.set_args(args)
         self.args = args
         self.model_dict = {
@@ -16,7 +18,11 @@ class Exp_Basic(object):
         self.device = self._acquire_device()
         self.model = self._build_model().to(self.device)
 
-        self.saver = saver
+
+        if saver is None:
+            saver = Saver(args)
+        else:
+            self.saver = saver
 
     def set_args(self, args):
         # Set d_model

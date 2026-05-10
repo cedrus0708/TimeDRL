@@ -42,7 +42,7 @@ warnings.filterwarnings("ignore")
 
 
 class Exp_Forecasting(Exp_Basic):
-    def __init__(self, args, saver):
+    def __init__(self, args, saver = None):
         super().__init__(args, saver)
         # 1. set args, model_dict, device into self
         # 2. build model

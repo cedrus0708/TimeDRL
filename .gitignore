@@ -3,6 +3,14 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# results no tracking
+results/*
+weights/*.pth
+embedding_banks/*.npz
+embedding_detectors/*.npz
+embedding_score_reports/*.npz
+embedding_score_reports/*.csv
+
 # C extensions
 *.so
 

@@ -9,6 +9,12 @@ import shutil
 import time
 import json
 
+from utils.model_registry import (
+    apply_model_registry_if_requested,
+    get_explicit_cli_arg_names,
+    print_resolved_registry_args,
+)
+
 try:
     from TimeDRL.exp.exp_forecasting import Exp_Forecasting
     from TimeDRL.exp.exp_classification import Exp_Classification
@@ -359,6 +365,37 @@ def get_args_from_parser() -> argparse.Namespace:
         help="where to save results",
     )
 
+    parser.add_argument(
+    "--model_for",
+    type=str,
+    default=None,
+    help=(
+        "Load task/data/model/checkpoint configuration from weights/args.json. "
+        "Example: Exchange, Weather, ETTh1, HAR."
+        ),
+    )
+
+    parser.add_argument(
+        "--model_registry_path",
+        type=str,
+        default="./weights/args.json",
+        help="Path to model registry JSON.",
+    )
+
+    parser.add_argument(
+        "--weights_dir",
+        type=str,
+        default="./weights",
+        help="Directory containing checkpoint files referenced by the model registry.",
+    )
+
+    parser.add_argument(
+        "--print_registry_config",
+        action="store_true",
+        default=False,
+        help="Print resolved config after applying model registry.",
+    )
+
     args, _ = parser.parse_known_args()
 
     # * Not used
@@ -535,6 +572,47 @@ def trainable(
     return return_metrics
 
 
+def prepare_args_with_optional_registry() -> argparse.Namespace:
+    """
+    Parse normal TimeDRL args, then optionally overwrite them from weights/args.json
+    using --model_for.
+
+    Important order:
+        1. parse CLI
+        2. apply model registry if --model_for is given
+        3. re-check GPU availability
+        4. update dataset-dependent args
+    """
+    explicit_arg_names = get_explicit_cli_arg_names()
+
+    args = get_args_from_parser()
+
+    args = apply_model_registry_if_requested(
+        args=args,
+        explicit_arg_names=explicit_arg_names,
+        verbose=True,
+    )
+
+    # get_args_from_parser checks this before registry loading,
+    # but registry may overwrite use_gpu, so check again here.
+    args.use_gpu = True if torch.cuda.is_available() and args.use_gpu else False
+
+    args.root_folder = Path(__file__).resolve().parent
+
+    # Must run AFTER registry config is applied.
+    # This finalizes C, K, d_model, T_p, i_dim, etc.
+    args = update_args_from_dataset(args)
+
+    if args.task_name == "forecasting":
+        args.setting = f"{args.task_name}_{args.features}_{args.data_name}"
+    else:
+        args.setting = f"{args.task_name}_{args.data_name}"
+
+    if getattr(args, "print_registry_config", False) or getattr(args, "model_for", None):
+        print_resolved_registry_args(args)
+
+    return args
+
 if __name__ == "__main__":
     """------------------------------------"""
    
@@ -600,7 +678,22 @@ if __name__ == "__main__":
     set_seed(seed=2023)
 
     # Setup args
-    args = get_args_from_parser()
+    args = prepare_args_with_optional_registry()
+
+    # New registry-based path.
+    # If --model_for is given, everything comes from weights/args.json,
+    # optionally overridden by explicit CLI args like --batch_size.
+    if getattr(args, "model_for", None) is not None:
+        if args.task_name == "forecasting":
+            return_metrics = trainable_forecasting(args)
+        elif args.task_name == "classification":
+            return_metrics = trainable_classification(args)
+        else:
+            raise NotImplementedError
+
+        print_formatted_dict(return_metrics)
+        sys.exit(0)
+
 
     # Setup fixed params
     fixed_params = {
@@ -625,7 +718,8 @@ if __name__ == "__main__":
 
     # Setup tunable params
     # TODO: copy `config` from `exp_settings_and_results` (be careful with the boolean values)
-    tunable_params = {
+    tunable_params = {}
+    tunable_params_idk = {
         "pretrain_optim": "AdamW",
         "pretrain_learning_rate": 0.00009968298929968175,
         "pretrain_lradj": "type3",
