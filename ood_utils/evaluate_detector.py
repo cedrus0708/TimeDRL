@@ -244,16 +244,31 @@ def evaluate_level(
 
     sample_index = None
 
+    sample_index = None
+
     if level_name == "instance":
-        sample_index = labels.get("instance_sample_index")
-        if sample_index is None:
-            sample_index = scores.get("instance_sample_index")
+        # If we evaluate sample-level aggregated scores, e.g.
+        # sample_instance_score_max / sample_instance_score_mean,
+        # then the score array is already [N_samples], so use 0..N-1.
+        if score_key.startswith("sample_"):
+            sample_index = np.arange(score_values.shape[0], dtype=np.int64)
+        else:
+            # Raw instance-level scores may be [N_samples * C],
+            # so then instance_sample_index is valid.
+            sample_index = labels.get("instance_sample_index")
+            if sample_index is None:
+                sample_index = scores.get("instance_sample_index")
 
     if level_name == "timestamp":
-        sample_index = labels.get("timestamp_sample_index")
-        if sample_index is None:
-            sample_index = scores.get("timestamp_sample_index")
-
+        # Raw timestamp_scores are vector-level, so timestamp_sample_index matches them.
+        if score_key == "timestamp_scores":
+            sample_index = labels.get("timestamp_sample_index")
+            if sample_index is None:
+                sample_index = scores.get("timestamp_sample_index")
+        else:
+            # Aggregated timestamp sample scores are already [N_samples].
+            sample_index = np.arange(score_values.shape[0], dtype=np.int64)
+            
     write_top_cases_csv(
         y_true=y_true,
         scores=score_values,
