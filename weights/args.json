@@ -158,11 +158,13 @@
       "use_gpu": true,
       "num_workers": 0,
       "batch_size": 8,
-      "use_amp": true
+      "use_amp": true,
+      "id_classes": [0, 1, 2, 3],
+      "near_ood_classes": [4, 5]
     },
     "checkpoints": {
-      "linear_model": "linear_model_0_27_classification_M_HAR_2026_05_09_15_49_40.pth",
-      "base_model": "model_15_classification_M_HAR_2026_05_09_15_49_40.pth"
+      "linear_model": "classification_HAR/linear_model_4_16_classification_M_HAR_2026_05_10_20_26_40.pth",
+      "base_model": "classification_HAR/model_29_classification_M_HAR_2026_05_10_20_26_40.pth"
     }
   }
 ]

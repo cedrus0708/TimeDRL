@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 import torch
-from torch.utils.data import ConcatDataset
+from torch.utils.data import ConcatDataset, Dataset, DataLoader
 from tqdm import tqdm
 import numpy as np
 from rich.table import Table
@@ -188,9 +188,46 @@ def visualize_validation_dataset(valid_dataset, args):
     print(f"Validation data shape: T={T}, C={C}")
 
 
+
+
+
+class ClassFilteredDataset(Dataset):
+    def __init__(self, base_dataset, allowed_classes):
+        self.base_dataset = base_dataset
+        self.allowed_classes = set(int(c) for c in allowed_classes)
+
+        if hasattr(base_dataset, "y"):
+            labels = np.asarray(base_dataset.y).reshape(-1)
+        elif hasattr(base_dataset, "labels"):
+            labels = np.asarray(base_dataset.labels).reshape(-1)
+        else:
+            labels = []
+            for i in range(len(base_dataset)):
+                _, y = base_dataset[i]
+                labels.append(int(y))
+            labels = np.asarray(labels)
+
+        self.indices = [
+            idx for idx, label in enumerate(labels)
+            if int(label) in self.allowed_classes
+        ]
+
+        if len(self.indices) == 0:
+            raise ValueError(
+                f"No samples found for allowed_classes={sorted(self.allowed_classes)}"
+            )
+
+    def __len__(self):
+        return len(self.indices)
+
+    def __getitem__(self, idx):
+        return self.base_dataset[self.indices[idx]]
+
 def load_classification_dataloader(args, mode="pretrain"):
     assert args.task_name == "classification"
+
     dataset_folder = args.root_folder / "dataset" / "classification" / args.data_name
+
     (
         train_dataset,
         train_loader,
@@ -200,12 +237,78 @@ def load_classification_dataloader(args, mode="pretrain"):
         test_loader,
     ) = load_all_datasets(args, mode, dataset_folder)
 
-    # Show dataset statistics (N, C, K, T, mean, std)
+    # Show original dataset statistics
     print("----------------------------------------")
-    print(f"### {args.data_name} ###")
-    class_distributions = show_dataset_stats(
-        train_dataset, valid_dataset, test_dataset, show_K=True
+    print(f"### {args.data_name} - original ###")
+    original_class_distributions = show_dataset_stats(
+        train_dataset,
+        valid_dataset,
+        test_dataset,
+        show_K=True,
     )
+
+    # Optional ID-class filtering for OOD experiments
+    if getattr(args, "id_classes", None) is not None:
+        print("----------------------------------------")
+        print(f"### Applying ID class filter: {args.id_classes} ###")
+
+        train_dataset = ClassFilteredDataset(
+            base_dataset=train_dataset,
+            allowed_classes=args.id_classes,
+        )
+
+        valid_dataset = ClassFilteredDataset(
+            base_dataset=valid_dataset,
+            allowed_classes=args.id_classes,
+        )
+
+        test_dataset = ClassFilteredDataset(
+            base_dataset=test_dataset,
+            allowed_classes=args.id_classes,
+        )
+
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=args.batch_size,
+            shuffle=True,
+            num_workers=args.num_workers,
+            drop_last=getattr(train_loader, "drop_last", False),
+        )
+
+        valid_loader = DataLoader(
+            valid_dataset,
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=args.num_workers,
+            drop_last=False,
+        )
+
+        test_loader = DataLoader(
+            test_dataset,
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=args.num_workers,
+            drop_last=False,
+        )
+
+        print("----------------------------------------")
+        print(f"### {args.data_name} - ID filtered ###")
+        filtered_class_distributions = show_dataset_stats(
+            train_dataset,
+            valid_dataset,
+            test_dataset,
+            show_K=True,
+        )
+
+        class_distributions = {
+            "original": original_class_distributions,
+            "filtered": filtered_class_distributions,
+            "id_classes": args.id_classes,
+            "near_ood_classes": getattr(args, "near_ood_classes", None),
+        }
+
+    else:
+        class_distributions = original_class_distributions
 
     return train_loader, valid_loader, test_loader, class_distributions
 

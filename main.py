@@ -9,6 +9,11 @@ import shutil
 import time
 import json
 
+
+# python main.py --model_for HAR --batch_size 8 --print_registry_config --save_path /content/drive/MyDrive/itt_most/egyetem/onlab/run_results
+
+
+
 from utils.model_registry import (
     apply_model_registry_if_requested,
     get_explicit_cli_arg_names,
@@ -394,6 +399,22 @@ def get_args_from_parser() -> argparse.Namespace:
         action="store_true",
         default=False,
         help="Print resolved config after applying model registry.",
+    )
+
+    parser.add_argument(
+        "--id_classes",
+        type=int,
+        nargs="+",
+        default=None,
+        help="Classification classes used as ID training classes, e.g. --id_classes 0 1 2 3",
+    )
+
+    parser.add_argument(
+        "--near_ood_classes",
+        type=int,
+        nargs="+",
+        default=None,
+        help="Classes intentionally left out from training for OOD evaluation, e.g. --near_ood_classes 4 5",
     )
 
     args, _ = parser.parse_known_args()
