@@ -125,6 +125,7 @@ python ood_utils/inspect_embedding_scores.py --scores_path ./embedding_detectors
 
 python main.py --model_for HAR --batch_size 8 --print_registry_config --save_path /content/drive/MyDrive/itt_most/egyetem/onlab/run_results
 
+
 forecasting pipline
 
 python ood_utils/embedding_bank.py --model_for Exchange --bank_split train --batch_size 256 --output_name Exchange_clean_train_reference_embedding_bank
@@ -135,5 +136,25 @@ python ood_utils/embedding_bank.py --model_for Exchange --bank_split test --batc
 
 python ood_utils/embedding_detector.py --reference_bank ./embedding_banks/Exchange_clean_train_reference_embedding_bank.npz --query_bank ./embedding_banks/Exchange_injected_test_embedding_bank.npz --output_dir ./embedding_detectors --output_name Exchange_clean_vs_injected_knn --k 5 --metric euclidean --score_mode mean --normalization standardize --threshold_quantile 0.95
 
+python ood_utils/ood_eval_sets.py forecasting-csv-labels --mask_path ./eval_sets/Exchange_injected_mask.npz --bank_path ./embedding_banks/Exchange_injected_test_embedding_bank.npz --output_path ./eval_sets/Exchange_injected_test_labels.npz --seq_len 168 --patch_len 16 --stride 16 --split_start_index 5120
 
-python ood_utils/ood_eval_sets.py forecasting-csv-labels --mask_path ./eval_sets/Exchange_injected_mask.npz --bank_path ./embedding_banks/Exchange_injected_test_embedding_bank.npz --output_path ./eval_sets/Exchange_injected_test_labels.npz --seq_len 168 --patch_len 16 --stride 16 --bank_split test
+python ood_utils/evaluate_detector.py --scores_path ./embedding_detectors/Exchange_clean_vs_injected_knn.scores.npz --labels_path ./eval_sets/Exchange_injected_test_labels.npz --output_dir ./evaluation_reports --output_name Exchange_clean_vs_injected_knn
+
+python ood_utils/visualize_scores.py --scores_path ./embedding_detectors/Exchange_clean_vs_injected_knn.scores.npz --labels_path ./eval_sets/Exchange_injected_test_labels.npz --output_dir ./score_visualizations --output_name Exchange_clean_vs_injected_knn --top_k 100 --sample_id 42
+
+
+classificatin
+
+python main.py --model_for HAR --batch_size 256 --id_classes 0 1 2 3 --near_ood_classes 4 5
+
+python ood_utils/embedding_bank.py --model_for HAR --bank_split train --batch_size 256 --id_classes 0 1 2 3 --output_name HAR_ID0123_train_reference_embedding_bank
+
+python ood_utils/embedding_bank.py --model_for HAR --bank_split test --batch_size 256 --id_classes 0 1 2 3 --near_ood_classes 4 5 --output_name HAR_ID0123_NEAR45_test_embedding_bank
+
+python ood_utils/embedding_detector.py --reference_bank ./embedding_banks/HAR_ID0123_train_reference_embedding_bank.npz --query_bank ./embedding_banks/HAR_ID0123_NEAR45_test_embedding_bank.npz --output_dir ./embedding_detectors --output_name HAR_ID0123_vs_NEAR45_knn --k 5 --metric euclidean --score_mode mean --normalization standardize --threshold_quantile 0.95
+
+python ood_utils/ood_eval_sets.py classification-labels --bank_path ./embedding_banks/HAR_ID0123_NEAR45_test_embedding_bank.npz --id_classes 0 1 2 3 --near_ood_classes 4 5 --output_path ./eval_sets/HAR_ID0123_NEAR45_test_labels.npz
+
+python ood_utils/evaluate_detector.py --scores_path ./embedding_detectors/HAR_ID0123_vs_NEAR45_knn.scores.npz --labels_path ./eval_sets/HAR_ID0123_NEAR45_test_labels.npz --output_dir ./evaluation_reports --output_name HAR_ID0123_vs_NEAR45_knn
+
+python ood_utils/visualize_scores.py --scores_path ./embedding_detectors/HAR_ID0123_vs_NEAR45_knn.scores.npz --labels_path ./eval_sets/HAR_ID0123_NEAR45_test_labels.npz --output_dir ./score_visualizations --output_name HAR_ID0123_vs_NEAR45_knn --top_k 100 --sample_id 42

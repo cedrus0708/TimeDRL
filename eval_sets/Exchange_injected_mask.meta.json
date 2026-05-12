@@ -1,0 +1,120 @@
+{
+  "input_csv_path": "dataset\\forecasting\\exchange_rate\\exchange_rate.csv",
+  "output_csv_path": "dataset\\forecasting\\exchange_rate\\exchange_rate_injected.csv",
+  "output_mask_path": "eval_sets\\Exchange_injected_mask.npz",
+  "date_column": null,
+  "value_columns": [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "OT"
+  ],
+  "anomaly_fraction": 0.05,
+  "anomaly_types": [
+    "spike",
+    "level_shift",
+    "noise",
+    "trend",
+    "flatline"
+  ],
+  "min_len": 8,
+  "max_len": 32,
+  "magnitude": 3.0,
+  "channel_mode": "random_one",
+  "inject_start_ratio": 0.7,
+  "inject_end_ratio": 1.0,
+  "inject_start_idx": 5312,
+  "inject_end_idx": 7588,
+  "seed": 42,
+  "source_csv_path": null,
+  "events": [
+    {
+      "event_id": 0,
+      "anomaly_type": "spike",
+      "start": 6784,
+      "end": 6811,
+      "length": 27,
+      "columns": [
+        "3"
+      ],
+      "column_indices": [
+        3
+      ],
+      "ood_type": 1
+    },
+    {
+      "event_id": 1,
+      "anomaly_type": "flatline",
+      "start": 6892,
+      "end": 6902,
+      "length": 10,
+      "columns": [
+        "1"
+      ],
+      "column_indices": [
+        1
+      ],
+      "ood_type": 1
+    },
+    {
+      "event_id": 2,
+      "anomaly_type": "spike",
+      "start": 7513,
+      "end": 7534,
+      "length": 21,
+      "columns": [
+        "5"
+      ],
+      "column_indices": [
+        5
+      ],
+      "ood_type": 1
+    },
+    {
+      "event_id": 3,
+      "anomaly_type": "trend",
+      "start": 6466,
+      "end": 6493,
+      "length": 27,
+      "columns": [
+        "1"
+      ],
+      "column_indices": [
+        1
+      ],
+      "ood_type": 1
+    },
+    {
+      "event_id": 4,
+      "anomaly_type": "noise",
+      "start": 6148,
+      "end": 6168,
+      "length": 20,
+      "columns": [
+        "1"
+      ],
+      "column_indices": [
+        1
+      ],
+      "ood_type": 1
+    },
+    {
+      "event_id": 5,
+      "anomaly_type": "flatline",
+      "start": 6048,
+      "end": 6066,
+      "length": 18,
+      "columns": [
+        "OT"
+      ],
+      "column_indices": [
+        7
+      ],
+      "ood_type": 1
+    }
+  ]
+}
