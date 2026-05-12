@@ -10,7 +10,7 @@ import time
 import json
 
 
-# python main.py --model_for HAR --batch_size 8 --print_registry_config --save_path /content/drive/MyDrive/itt_most/egyetem/onlab/run_results
+# python main.py --model_for HAR --batch_size 8 --print_registry_config --id_classes 0 1 2 3 --near_ood_classes 4 5 --save_path /content/drive/MyDrive/itt_most/egyetem/onlab/run_results 
 
 
 
