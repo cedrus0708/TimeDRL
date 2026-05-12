@@ -163,8 +163,8 @@
       "near_ood_classes": [4, 5]
     },
     "checkpoints": {
-      "linear_model": "classification_HAR/linear_model_4_16_classification_M_HAR_2026_05_10_20_26_40.pth",
-      "base_model": "classification_HAR/model_29_classification_M_HAR_2026_05_10_20_26_40.pth"
+      "linear_model": "linear_model_29_0_classification_M_HAR_2026_05_12_08_27_08.pth",
+      "base_model": "model_29_classification_M_HAR_2026_05_12_08_27_08.pth"
     }
   }
 ]
