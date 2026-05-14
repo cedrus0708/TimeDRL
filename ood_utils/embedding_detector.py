@@ -736,7 +736,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output_dir",
         type=str,
-        default="./embedding_detectors",
+        default="./ood/embedding_detectors",
         help="Output directory.",
     )
     parser.add_argument(

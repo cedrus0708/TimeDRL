@@ -12,6 +12,8 @@ embedding_detectors/*.npz
 embedding_score_reports/*.npz
 embedding_score_reports/*.csv
 eval_sets/*.npz
+ood_runs/*
+ood/*
 
 # C extensions
 *.so

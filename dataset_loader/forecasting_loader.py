@@ -155,6 +155,9 @@ class Dataset_ETT_hour(Dataset):
         if self.set_type == 0:
             border2 = (border2 - self.seq_len) * self.percent // 100 + self.seq_len
 
+        self.border1 = int(border1)
+        self.border2 = int(border2)
+
         if self.features == "M" or self.features == "MS":
             cols_data = df_raw.columns[1:]
             df_data = df_raw[cols_data]
@@ -188,6 +191,9 @@ class Dataset_ETT_hour(Dataset):
         self.data_x = data[border1:border2]
         self.data_y = data[border1:border2]
         self.data_stamp = data_stamp
+
+        base_window_count = len(self.data_x) - self.seq_len - self.pred_len + 1
+        self.window_start_index = self.border1 + np.arange(base_window_count, dtype=np.int64)
 
     def __getitem__(self, index):
         if self.return_single_feature == False:
@@ -290,6 +296,9 @@ class Dataset_ETT_minute(Dataset):
         if self.set_type == 0:
             border2 = (border2 - self.seq_len) * self.percent // 100 + self.seq_len
 
+        self.border1 = int(border1)
+        self.border2 = int(border2)
+
         if self.features == "M" or self.features == "MS":
             cols_data = df_raw.columns[1:]
             df_data = df_raw[cols_data]
@@ -322,6 +331,9 @@ class Dataset_ETT_minute(Dataset):
         self.data_x = data[border1:border2]
         self.data_y = data[border1:border2]
         self.data_stamp = data_stamp
+
+        base_window_count = len(self.data_x) - self.seq_len - self.pred_len + 1
+        self.window_start_index = self.border1 + np.arange(base_window_count, dtype=np.int64)
 
     def __getitem__(self, index):
         if self.return_single_feature == False:
@@ -424,6 +436,9 @@ class Dataset_Custom(Dataset):
         if self.set_type == 0:
             border2 = (border2 - self.seq_len) * self.percent // 100 + self.seq_len
 
+        self.border1 = int(border1)
+        self.border2 = int(border2)
+
         if self.features == "M" or self.features == "MS":
             cols_data = df_raw.columns[1:]
             df_data = df_raw[cols_data]
@@ -454,6 +469,9 @@ class Dataset_Custom(Dataset):
         self.data_x = data[border1:border2]
         self.data_y = data[border1:border2]
         self.data_stamp = data_stamp
+
+        base_window_count = len(self.data_x) - self.seq_len - self.pred_len + 1
+        self.window_start_index = self.border1 + np.arange(base_window_count, dtype=np.int64)
 
     def __getitem__(self, index):
         if self.return_single_feature == False:

@@ -38,8 +38,8 @@
       "use_amp": true
     },
     "checkpoints": {
-      "linear_model": "linear_model_0_18_forecasting_M_Exchange_2026_05_10_08_33_19.pth",
-      "base_model": "model_9_forecasting_M_Exchange_2026_05_10_08_33_19.pth"
+      "linear_model": "forecasting_M_Exchange/linear_model_0_18_forecasting_M_Exchange_2026_05_10_08_33_19.pth",
+      "base_model": "forecasting_M_Exchange/model_9_forecasting_M_Exchange_2026_05_10_08_33_19.pth"
     }
   },
   {
@@ -165,6 +165,49 @@
     "checkpoints": {
       "linear_model": "linear_model_29_0_classification_M_HAR_2026_05_12_08_27_08.pth",
       "base_model": "model_29_classification_M_HAR_2026_05_12_08_27_08.pth"
+    }
+  },
+  {
+    "model_for": "PenDigits",
+    "model_config": {
+      "pretrain_optim": "AdamW",
+      "pretrain_learning_rate": 0.00010007822805912367,
+      "pretrain_lradj": "type1",
+      "pretrain_weight_decay": 0.00010542588851765974,
+      "pretrain_epochs": 30,
+      "contrastive_weight": 0.25,
+      "linear_eval_optim": "AdamW",
+      "linear_eval_learning_rate": 0.0010007822805912366,
+      "linear_eval_lradj": "warmup",
+      "linear_eval_weight_decay": 0.0026427802130299665,
+      "linear_eval_epochs": 30,
+      "pos_embed_type": "learnable",
+      "token_embed_type": "conv",
+      "token_embed_kernel_size": 3,
+      "dropout": 0.05,
+      "base_d_model": 128,
+      "n_layers": 5,
+      "n_heads": 9,
+      "patch_len": 2,
+      "stride": 1,
+      "enable_channel_independence": false,
+      "seq_len": 168
+    },
+    "run_config": {
+      "task_name": "classification",
+      "data_name": "PenDigits",
+      "pred_len_list": 24,
+      "features": "M",
+      "use_gpu": true,
+      "num_workers": 0,
+      "batch_size": 8,
+      "use_amp": true,
+      "id_classes": [0, 1, 2, 3, 6, 7, 8],
+      "near_ood_classes": [4, 5, 9]
+    },
+    "checkpoints": {
+      "linear_model": "tbd",
+      "base_model": "tbd"
     }
   }
 ]

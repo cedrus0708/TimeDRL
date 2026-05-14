@@ -1,3 +1,10 @@
+#egy olyan futtató környezet kell, ahol a már meglévő bankokat pl nem futtatja újra, stb.
+
+#de ez lenne a jövő feljeszétse.
+#most fókusz kerüljön a futtatásokra ill a papíron lévő rövid és hosszútávú todokra
+
+
+
 import argparse
 import json
 import sys
@@ -87,7 +94,7 @@ def parse_embedding_bank_args() -> Tuple[argparse.Namespace, List[str]]:
     parser.add_argument(
         "--output_dir",
         type=str,
-        default="./embedding_banks",
+        default="./ood/embedding_banks",
         help="Directory where the embedding bank files will be saved.",
     )
 
@@ -150,9 +157,46 @@ def parse_embedding_bank_args() -> Tuple[argparse.Namespace, List[str]]:
         help="Load checkpoint with strict=False. Avoid this unless debugging.",
     )
 
+    parser.add_argument(
+        "--override_data_path",
+        type=str,
+        default=None,
+        help=(
+            "Optional forecasting CSV path override. "
+            "Use this to run the trained model on an injected CSV without changing the original dataset files."
+        ),
+    )
+
     bank_args, timedrl_argv = parser.parse_known_args()
     return bank_args, timedrl_argv
 
+def apply_override_data_path(
+    args: argparse.Namespace,
+    override_data_path: Optional[str],
+) -> argparse.Namespace:
+    if override_data_path is None:
+        return args
+
+    if args.task_name != "forecasting":
+        raise ValueError("--override_data_path is only supported for forecasting.")
+
+    data_path = Path(override_data_path)
+
+    if not data_path.exists():
+        raise FileNotFoundError(f"override_data_path not found: {data_path}")
+
+    data_path = data_path.resolve()
+
+    # Your loader uses:
+    # df_raw = pd.read_csv(self.data_path)
+    # therefore self.data_path must be the full CSV path.
+    args.data_path = str(data_path)
+    args.override_data_path = str(data_path)
+
+    print("[override_data_path] Forecasting CSV overridden:")
+    print(f"  args.data_path = {args.data_path}")
+
+    return args
 
 def build_experiment(args: argparse.Namespace):
     """
@@ -312,6 +356,58 @@ def unpack_batch(
 
     raise NotImplementedError(f"Unknown task_name: {task_name}")
 
+def infer_forecasting_window_start_index(
+    dataset,
+    args,
+    bank_split: str,
+    num_samples: int,
+) -> Optional[np.ndarray]:
+    """
+    Infer global CSV row start index for each forecasting window.
+
+    Returns:
+        window_start_index: [num_samples]
+        or None if it cannot be inferred safely.
+    """
+
+    # 1) Best case: dataset already stores exact window starts.
+    for attr_name in [
+        "window_start_index",
+        "window_start_indices",
+        "window_starts",
+        "indices",
+    ]:
+        if hasattr(dataset, attr_name):
+            values = np.asarray(getattr(dataset, attr_name)).reshape(-1)
+
+            if values.shape[0] >= num_samples:
+                return values[:num_samples].astype(np.int64)
+
+    # 2) Common TimeDRL / time-series-loader case:
+    # dataset has border1 / border2 attributes.
+    for attr_name in ["border1", "border1s", "start_index"]:
+        if hasattr(dataset, attr_name):
+            value = getattr(dataset, attr_name)
+
+            if isinstance(value, (list, tuple, np.ndarray)):
+                split_to_idx = {"train": 0, "valid": 1, "test": 2}
+                split_idx = split_to_idx.get(bank_split)
+
+                if split_idx is not None and len(value) > split_idx:
+                    start = int(value[split_idx])
+                    return start + np.arange(num_samples, dtype=np.int64)
+
+            try:
+                start = int(value)
+                return start + np.arange(num_samples, dtype=np.int64)
+            except Exception:
+                pass
+
+    # 3) Fallback for standard sequential windows:
+    # This is only safe if the selected loader dataset is already the exact split
+    # and the first window corresponds to split-local row 0.
+    # This is NOT global CSV index, so do not use it as global ground truth mapping.
+    return None
 
 def flatten_embeddings_with_mapping(
     t: torch.Tensor,
@@ -430,6 +526,9 @@ def build_embedding_bank(
     use_amp: bool = False,
     linear_eval: Optional[torch.nn.Module] = None,
     save_linear_outputs: bool = False,
+    dataset_for_window_mapping=None,
+    bank_split: str = "train",
+    args: Optional[argparse.Namespace] = None
 ) -> Dict[str, np.ndarray]:
     """
     Run the trained TimeDRL model over a split and collect reference embeddings.
@@ -610,6 +709,11 @@ def main() -> None:
     args = update_args_from_dataset(args)
 
     if args.task_name == "forecasting":
+        args = apply_override_data_path(
+            args=args,
+            override_data_path=bank_args.override_data_path,
+        )
+
         args.setting = f"{args.task_name}_{args.features}_{args.data_name}"
     else:
         args.setting = f"{args.task_name}_{args.data_name}"
@@ -718,7 +822,34 @@ def main() -> None:
         use_amp=args.use_amp,
         linear_eval=linear_eval,
         save_linear_outputs=bank_args.save_linear_outputs,
+        dataset_for_window_mapping=selected_loader.dataset,
+        bank_split=bank_args.bank_split,
+        args=args,
     )
+
+    if args.task_name == "forecasting":
+        dataset = selected_loader.dataset
+        num_samples = int(
+            bank["instance_sample_index"].max() + 1
+            if bank["instance_sample_index"].size > 0
+            else 0
+        )
+
+        window_start_index = infer_forecasting_window_start_index(
+            dataset=dataset,
+            args=args,
+            bank_split=bank_args.bank_split,
+            num_samples=num_samples,
+        )
+
+        if window_start_index is not None:
+            bank["window_start_index"] = window_start_index.astype(np.int64)
+            print(f"Saved window_start_index: {bank['window_start_index'].shape}")
+        else:
+            print(
+                "Warning: forecasting dataset has no usable window_start_index. "
+                "forecasting-csv-labels will need --split_start_index."
+            )
 
     output_name = bank_args.output_name
     if output_name is None:
@@ -736,6 +867,7 @@ def main() -> None:
         "model": args.model,
         "setting": args.setting,
         "checkpoint_path": str(Path(bank_args.checkpoint_path).resolve()),
+        "override_data_path": bank_args.override_data_path,
         "bank_split": bank_args.bank_split,
         "mode": bank_args.mode,
         "embedding_view": bank_args.embedding_view,
@@ -757,6 +889,11 @@ def main() -> None:
         ),
         "instance_embeddings_shape": list(bank["instance_embeddings"].shape),
         "timestamp_embeddings_shape": list(bank["timestamp_embeddings"].shape),
+        "window_start_index_key": (
+            "window_start_index" if "window_start_index" in bank else None
+        ),
+        "has_window_start_index": "window_start_index" in bank,
+        
     }
 
     npz_path, json_path = save_embedding_bank(

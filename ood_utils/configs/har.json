@@ -1,0 +1,30 @@
+{
+  "run": {
+    "output_root": "./ood_runs",
+    "train_model": false
+  },
+
+  "embedding_bank": {
+    "model_for": "HAR",
+    "batch_size": 128,
+    "model_registry_path": "./weights/args.json",
+    "checkpoint_path": null,
+
+    "id_classes": [0, 1, 2, 3],
+    "near_ood_classes": [4, 5],
+    "far_ood_classes": []
+  },
+
+  "embedding_detector": {
+    "k": 5,
+    "metric": "euclidean",
+    "score_mode": "mean",
+    "normalization": "standardize",
+    "threshold_quantile": 0.95
+  },
+
+  "visualize_scores": {
+    "top_k": 100,
+    "sample_id": 42
+  }
+}

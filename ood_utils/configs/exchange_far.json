@@ -1,0 +1,43 @@
+{
+  "run": {
+    "output_root": "./ood_runs",
+    "train_model": false
+  },
+
+  "embedding_bank": {
+    "model_for": "Exchange",
+    "batch_size": 256,
+    "model_registry_path": "./weights/args.json",
+    "checkpoint_path": null
+  },
+
+  "forecasting_csv_injection": {
+    "use_injection": true,
+    "input_csv_path": "./dataset/forecasting/exchange_rate/exchange_rate.csv",
+
+    "anomaly_fraction": 0.05,
+    "anomaly_types": ["segment_replace"],
+    "min_len": 16,
+    "max_len": 64,
+    "magnitude": 3.0,
+    "channel_mode": "random_subset",
+    "inject_start_ratio": 0.7,
+    "inject_end_ratio": 1.0,
+    "seed": 42,
+
+    "source_csv_path": "./dataset/forecasting/weather/weather.csv"
+  },
+
+  "embedding_detector": {
+    "k": 5,
+    "metric": "euclidean",
+    "score_mode": "mean",
+    "normalization": "standardize",
+    "threshold_quantile": 0.95
+  },
+
+  "visualize_scores": {
+    "top_k": 100,
+    "sample_id": 42
+  }
+}
