@@ -177,10 +177,32 @@ python ood_utils/embedding_bank.py ^
     --near_ood_classes 4 5 ^
     --output_name HAR_ID0123_NEAR45_test_embedding_bank
 
-python ood_utils/embedding_detector.py --reference_bank ./embedding_banks/HAR_ID0123_train_reference_embedding_bank.npz --query_bank ./embedding_banks/HAR_ID0123_NEAR45_test_embedding_bank.npz --output_dir ./embedding_detectors --output_name HAR_ID0123_vs_NEAR45_knn --k 5 --metric euclidean --score_mode mean --normalization standardize --threshold_quantile 0.95
+python ood_utils/embedding_detector.py ^
+    --reference_bank ./embedding_banks/HAR_ID0123_train_reference_embedding_bank.npz ^
+    --query_bank ./embedding_banks/HAR_ID0123_NEAR45_test_embedding_bank.npz ^
+    --output_dir ./embedding_detectors ^
+    --output_name HAR_ID0123_vs_NEAR45_knn ^
+    --k 5 ^
+    --metric euclidean ^
+    --score_mode mean ^
+    --normalization standardize ^
+    --threshold_quantile 0.95
 
-python ood_utils/ood_eval_sets.py classification-labels --bank_path ./embedding_banks/HAR_ID0123_NEAR45_test_embedding_bank.npz --id_classes 0 1 2 3 --near_ood_classes 4 5 --output_path ./eval_sets/HAR_ID0123_NEAR45_test_labels.npz
+python ood_utils/ood_eval_sets.py classification-labels ^
+    --bank_path ./embedding_banks/HAR_ID0123_NEAR45_test_embedding_bank.npz ^
+    --id_classes 0 1 2 3 ^
+    --near_ood_classes 4 5 ^
+    --output_path ./eval_sets/HAR_ID0123_NEAR45_test_labels.npz
 
-python ood_utils/evaluate_detector.py --scores_path ./embedding_detectors/HAR_ID0123_vs_NEAR45_knn.scores.npz --labels_path ./eval_sets/HAR_ID0123_NEAR45_test_labels.npz --output_dir ./evaluation_reports --output_name HAR_ID0123_vs_NEAR45_knn
+python ood_utils/evaluate_detector.py ^
+    --scores_path ./embedding_detectors/HAR_ID0123_vs_NEAR45_knn.scores.npz ^
+    --labels_path ./eval_sets/HAR_ID0123_NEAR45_test_labels.npz ^
+    --output_dir ./evaluation_reports ^
+    --output_name HAR_ID0123_vs_NEAR45_knn
 
-python ood_utils/visualize_scores.py --scores_path ./embedding_detectors/HAR_ID0123_vs_NEAR45_knn.scores.npz --labels_path ./eval_sets/HAR_ID0123_NEAR45_test_labels.npz --output_dir ./score_visualizations --output_name HAR_ID0123_vs_NEAR45_knn --top_k 100 --sample_id 42
+python ood_utils/visualize_scores.py ^
+    --scores_path ./embedding_detectors/HAR_ID0123_vs_NEAR45_knn.scores.npz ^
+    --labels_path ./eval_sets/HAR_ID0123_NEAR45_test_labels.npz ^
+    --output_dir ./score_visualizations --output_name HAR_ID0123_vs_NEAR45_knn ^
+    --top_k 100 ^
+    --sample_id 42

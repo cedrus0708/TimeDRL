@@ -494,7 +494,6 @@ class Exp_Classification(Exp_Basic):
                 linear_eval_early_stopping(valid_loss, self.linear_eval, self.saver.get_path("checkpoints", linear_checkpoint_file_name))
 
                 # * Early stopping
-                linear_eval_early_stopping(valid_loss)
                 if linear_eval_early_stopping.early_stop:
                     print("Linear early stopping")
                     break
@@ -527,8 +526,8 @@ class Exp_Classification(Exp_Basic):
 
             model_checkpoint_file_name = f"model_{pretrain_epoch}_{self.saver.get_unique_name()}.pth"
             model_early_stopping(pretrain_loss, self.model, self.saver.get_path("checkpoints", model_checkpoint_file_name))
+            
             # * Early stopping
-            model_early_stopping(pretrain_loss)
             if model_early_stopping.early_stop:
                 print("Pretrain early stopping")
                 break

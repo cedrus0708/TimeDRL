@@ -1,0 +1,51 @@
+{
+  "run": {
+    "output_root": "./ood_runs",
+    "run_name": "har_id0123_near45_knn",
+    "train_model": false
+  },
+  "cache": {
+    "enabled": true,
+    "cache_root": "./ood_runs/_cache",
+    "materialize_mode": "copy",
+    "hash_file_contents": true,
+    "force_rebuild": false
+  },
+  "embedding_bank": {
+    "model_for": "HAR",
+    "batch_size": 256,
+    "model_registry_path": "./weights/args.json",
+    "checkpoint_path": null,
+    "mode": "pretrain",
+    "embedding_view": "first",
+    "l2_normalize": false,
+    "id_classes": [0, 1, 2, 3],
+    "near_ood_classes": [4, 5],
+    "far_ood_classes": []
+  },
+  "embedding_detector": {
+    "k": 5,
+    "metric": "euclidean",
+    "score_mode": "mean",
+    "normalization": "standardize",
+    "threshold_quantile": 0.95,
+    "batch_size": 1024,
+    "max_timestamp_reference_vectors": 50000,
+    "random_seed": 2023
+  },
+  "evaluate_detector": {
+    "top_k": 100,
+    "skip_timestamp": true
+  },
+  "visualize_scores": {
+    "enabled": true,
+    "top_k": 100,
+    "sample_id": 42
+  },
+  "experiment_dashboard": {
+    "enabled": true
+  },
+  "forecasting_timeseries_browser": {
+    "enabled": false
+  }
+}

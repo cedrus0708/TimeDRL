@@ -1,20 +1,32 @@
 """
-TimeDRL OOD/anomaly detection pipeline runner.
+TimeDRL OOD/anomaly detection pipeline runner v2.
 
-Supports:
-- forecasting CSV injection + labels + dashboards,
-- classification near-OOD from held-out classes,
-- classification true external far-OOD eval sets via classification_far_ood_builder.py,
-- content-addressed cache for expensive artifacts.
+Goals
+-----
+- One JSON config drives the whole OOD/anomaly pipeline.
+- Each run is stored in a clean, timestamped run directory.
+- Expensive artifacts can be reused from a content-addressed cache.
+- The runner writes logs, commands, status, summary, and a global registry.
 
-Place this file at:
-    ood_utils/run_ood_pipeline.py
+Typical usage
+-------------
+python ood_utils/run_ood_pipeline.py --config ./ood_configs/exchange_injected.json
+python ood_utils/run_ood_pipeline.py --config ./ood_configs/har_near_ood.json --run_name debug_har
+python ood_utils/run_ood_pipeline.py --config ./ood_configs/exchange_injected.json --dry_run
+python ood_utils/run_ood_pipeline.py --config ./ood_configs/exchange_injected.json --no_cache
 
-Typical usage:
-    python ood_utils/run_ood_pipeline.py --config ./ood_configs/har_wisdm_far_ood_config.json
-    python ood_utils/run_ood_pipeline.py --config ./ood_configs/exchange_injected_config.json --run_name debug_run
-    python ood_utils/run_ood_pipeline.py --config ./ood_configs/har_wisdm_far_ood_config.json --dry_run
-    python ood_utils/run_ood_pipeline.py --config ./ood_configs/har_wisdm_far_ood_config.json --force
+Expected repository layout
+--------------------------
+Run this file from the TimeDRL repository root, or keep it inside ood_utils/.
+It calls the existing scripts:
+- ood_utils/forecasting_csv_injection.py
+- ood_utils/embedding_bank.py
+- ood_utils/embedding_detector.py
+- ood_utils/ood_eval_sets.py
+- ood_utils/evaluate_detector.py
+- ood_utils/visualize_scores.py
+- ood_utils/experiment_dashboard.py              optional
+- ood_utils/forecasting_timeseries_browser.py    optional, forecasting only
 """
 
 from __future__ import annotations
@@ -29,18 +41,36 @@ import shutil
 import subprocess
 import sys
 import traceback
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 # -----------------------------------------------------------------------------
-# Basic helpers
+# Basic IO helpers
 # -----------------------------------------------------------------------------
+
+
+def load_json(path: str | Path) -> Dict[str, Any]:
+    path = Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"JSON config not found: {path}")
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, dict):
+        raise ValueError(f"JSON config must be an object: {path}")
+    return data
+
+
+def save_json(data: Dict[str, Any], path: str | Path) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(to_jsonable(data), f, indent=2, ensure_ascii=False)
 
 
 def to_jsonable(obj: Any) -> Any:
@@ -51,33 +81,6 @@ def to_jsonable(obj: Any) -> Any:
     if isinstance(obj, (list, tuple)):
         return [to_jsonable(v) for v in obj]
     return obj
-
-
-def stable_json_dumps(obj: Any) -> str:
-    return json.dumps(
-        to_jsonable(obj),
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    )
-
-
-def load_json(path: str | Path) -> Dict[str, Any]:
-    path = Path(path)
-    if not path.exists():
-        raise FileNotFoundError(f"JSON config not found: {path}")
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    if not isinstance(data, dict):
-        raise ValueError(f"Config must be a JSON object: {path}")
-    return data
-
-
-def save_json(data: Dict[str, Any], path: str | Path) -> None:
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(to_jsonable(data), f, indent=2, ensure_ascii=False)
 
 
 def resolve_repo_path(path: str | Path | None) -> Optional[Path]:
@@ -93,11 +96,16 @@ def path_str(path: str | Path) -> str:
     return str(path)
 
 
+def stable_json_dumps(obj: Any) -> str:
+    return json.dumps(to_jsonable(obj), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
 def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def sha256_file(path: str | Path, chunk_size: int = 1024 * 1024) -> str:
+    path = Path(path)
     h = hashlib.sha256()
     with open(path, "rb") as f:
         while True:
@@ -117,45 +125,49 @@ def file_signature(path: str | Path | None, content_hash: bool = True) -> Option
         return {"path": str(p), "exists": False}
 
     stat = p.stat()
-    out: Dict[str, Any] = {
+    sig: Dict[str, Any] = {
         "path": str(p.resolve()),
         "exists": True,
         "size": int(stat.st_size),
         "mtime_ns": int(stat.st_mtime_ns),
     }
     if content_hash and p.is_file():
-        out["sha256"] = sha256_file(p)
-    return out
+        sig["sha256"] = sha256_file(p)
+    return sig
 
 
 def step_cache_key(kind: str, payload: Dict[str, Any]) -> str:
-    digest = sha256_text(stable_json_dumps(payload))[:24]
-    return f"{kind}_{digest}"
+    return f"{kind}_{sha256_text(stable_json_dumps(payload))[:24]}"
 
 
 def copy_or_link_file(src: Path, dst: Path, mode: str = "copy") -> None:
     dst.parent.mkdir(parents=True, exist_ok=True)
-    if mode == "reference":
-        return
-    if dst.exists() or dst.is_symlink():
+    if dst.exists():
         dst.unlink()
 
-    if mode == "copy":
-        shutil.copy2(src, dst)
-        return
-
-    if mode == "hardlink":
-        try:
-            os.link(src, dst)
-        except OSError:
-            shutil.copy2(src, dst)
+    if mode == "reference":
+        # No file is created in the run directory. Caller should use src path directly.
         return
 
     if mode == "symlink":
         try:
             dst.symlink_to(src.resolve())
+            return
+        except OSError:
+            # Windows often needs elevated privileges for symlinks.
+            shutil.copy2(src, dst)
+            return
+
+    if mode == "hardlink":
+        try:
+            os.link(src, dst)
+            return
         except OSError:
             shutil.copy2(src, dst)
+            return
+
+    if mode == "copy":
+        shutil.copy2(src, dst)
         return
 
     raise ValueError("cache.materialize_mode must be one of: copy, hardlink, symlink, reference")
@@ -166,22 +178,6 @@ def copy_optional_file(src: Path, dst: Path, mode: str = "copy") -> bool:
         return False
     copy_or_link_file(src, dst, mode=mode)
     return True
-
-
-def add_optional_value_arg(cmd: List[str], name: str, value: Any) -> None:
-    if value is not None:
-        cmd.extend([f"--{name}", str(value)])
-
-
-def add_optional_flag(cmd: List[str], name: str, enabled: bool) -> None:
-    if enabled:
-        cmd.append(f"--{name}")
-
-
-def add_optional_list_args(cmd: List[str], name: str, values: Optional[Sequence[Any]]) -> None:
-    if values:
-        cmd.append(f"--{name}")
-        cmd.extend(str(v) for v in values)
 
 
 # -----------------------------------------------------------------------------
@@ -218,22 +214,24 @@ def find_model_entry(registry: List[Dict[str, Any]], model_for: str) -> Dict[str
     ]
     if not matches:
         available = [entry.get("model_for") for entry in registry]
-        raise ValueError(f"model_for={model_for!r} not found. Available: {available}")
+        raise ValueError(f"model_for={model_for!r} was not found. Available: {available}")
     if len(matches) > 1:
-        raise ValueError(f"Multiple entries found for model_for={model_for!r}.")
+        raise ValueError(f"Multiple registry entries found for model_for={model_for!r}.")
     return matches[0]
 
 
 def get_model_entry(config: Dict[str, Any]) -> Dict[str, Any]:
-    return find_model_entry(load_model_registry(get_model_registry_path(config)), get_model_for(config))
+    registry = load_model_registry(get_model_registry_path(config))
+    return find_model_entry(registry, get_model_for(config))
 
 
 def get_task_type(config: Dict[str, Any]) -> str:
     entry = get_model_entry(config)
-    task_name = entry.get("run_config", {}).get("task_name")
+    run_config = entry.get("run_config", {})
+    task_name = run_config.get("task_name")
     if task_name not in {"forecasting", "classification"}:
         raise ValueError(
-            f"Invalid/missing task_name for model_for={get_model_for(config)!r}: {task_name}"
+            f"Invalid or missing task_name in model registry for model_for={get_model_for(config)!r}: {task_name}"
         )
     return str(task_name)
 
@@ -247,8 +245,24 @@ def get_registry_value(config: Dict[str, Any], key: str, default: Any = None) ->
 
 
 # -----------------------------------------------------------------------------
-# Names/config
+# Config/name helpers
 # -----------------------------------------------------------------------------
+
+
+def add_optional_value_arg(cmd: List[str], name: str, value: Any) -> None:
+    if value is not None:
+        cmd.extend([f"--{name}", str(value)])
+
+
+def add_optional_flag(cmd: List[str], name: str, enabled: bool) -> None:
+    if enabled:
+        cmd.append(f"--{name}")
+
+
+def add_optional_list_args(cmd: List[str], name: str, values: Optional[Sequence[Any]]) -> None:
+    if values:
+        cmd.append(f"--{name}")
+        cmd.extend(str(v) for v in values)
 
 
 def detector_suffix(detector_cfg: Dict[str, Any]) -> str:
@@ -268,20 +282,14 @@ def class_tag(prefix: str, values: Optional[Sequence[Any]]) -> str:
     return prefix + "".join(str(v) for v in values)
 
 
-def is_external_classification_far_ood(config: Dict[str, Any]) -> bool:
-    if get_task_type(config) != "classification":
-        return False
-    return bool(config.get("classification_external_far_ood", {}).get("enabled", False))
-
-
 def build_default_names(config: Dict[str, Any]) -> Dict[str, str]:
     task_type = get_task_type(config)
     model_for = get_model_for(config)
     detector_name = detector_suffix(config.get("embedding_detector", {}))
 
     if task_type == "forecasting":
-        inj = config.get("forecasting_csv_injection", {})
-        use_injection = bool(inj.get("use_injection", False))
+        injection_cfg = config.get("forecasting_csv_injection", {})
+        use_injection = bool(injection_cfg.get("use_injection", False))
         test_tag = "injected" if use_injection else "custom_test"
         return {
             "run_name": f"{model_for}_clean_vs_{test_tag}_{detector_name}",
@@ -296,22 +304,8 @@ def build_default_names(config: Dict[str, Any]) -> Dict[str, str]:
     bank_cfg = config.get("embedding_bank", {})
     id_tag = class_tag("ID", bank_cfg.get("id_classes"))
     near_tag = class_tag("NEAR", bank_cfg.get("near_ood_classes"))
-
-    if is_external_classification_far_ood(config):
-        ext = config.get("classification_external_far_ood", {})
-        src = str(ext.get("source_data_name", "external"))
-        test_tag = f"{id_tag}_{near_tag}_FAR_{src}"
-        output_tag = f"{id_tag}_vs_{near_tag}_FAR_{src}"
-        return {
-            "run_name": f"{model_for}_{output_tag}_{detector_name}",
-            "train_bank_name": f"{model_for}_{id_tag}_train_reference_embedding_bank",
-            "external_eval_name": f"{model_for}_{test_tag}_eval_set.npz",
-            "test_bank_name": f"{model_for}_{test_tag}_test_embedding_bank",
-            "output_name": f"{model_for}_{output_tag}_{detector_name}",
-            "labels_name": f"{model_for}_{test_tag}_eval_set.npz",
-        }
-
     far_classes = bank_cfg.get("far_ood_classes") or []
+
     if far_classes:
         far_tag = class_tag("FAR", far_classes)
         test_tag = f"{id_tag}_{near_tag}_{far_tag}"
@@ -347,7 +341,7 @@ def merge_cli_overrides(config: Dict[str, Any], args: argparse.Namespace) -> Dic
 
 
 # -----------------------------------------------------------------------------
-# Run saver/cache
+# Run saver / registry
 # -----------------------------------------------------------------------------
 
 
@@ -363,6 +357,30 @@ class StepRecord:
 
 
 class OODPipelineRunSaver:
+    """
+    Creates a run directory:
+
+    output_root/
+        _cache/
+        ood_run_registry.csv
+        <model_for>/
+            <task_type>/
+                <run_name>/
+                    <timestamp>/
+                        config.json
+                        resolved_config.json
+                        commands.txt
+                        status.json
+                        run_summary.json
+                        logs/
+                        datasets/
+                        embedding_banks/
+                        embedding_detectors/
+                        eval_sets/
+                        evaluation_reports/
+                        score_visualizations/
+    """
+
     def __init__(self, config: Dict[str, Any], config_path: Path):
         self.config = config
         self.config_path = config_path
@@ -410,6 +428,7 @@ class OODPipelineRunSaver:
         shutil.copy2(config_path, self.run_dir / "config.original.json")
         save_json(config, self.run_dir / "config.json")
         save_json(config, self.run_dir / "resolved_config.json")
+
         self.create_registry_entry()
 
     def registry_fieldnames(self) -> List[str]:
@@ -446,6 +465,7 @@ class OODPipelineRunSaver:
         self.update_status("running", message="Pipeline started.")
 
     def update_registry(self, status: str, message: str = "", results: Optional[Dict[str, Any]] = None) -> None:
+        results = results or {}
         rows: List[Dict[str, str]] = []
         found = False
         if self.registry_path.exists():
@@ -454,7 +474,7 @@ class OODPipelineRunSaver:
                     if row["experiment_name"] == self.experiment_name:
                         row["status"] = status
                         row["message"] = message
-                        row["results"] = stable_json_dumps(results or {})
+                        row["results"] = stable_json_dumps(results)
                         row["run_path"] = str(self.run_dir)
                         found = True
                     rows.append(row)
@@ -484,6 +504,11 @@ class OODPipelineRunSaver:
             f.write("\n")
 
 
+# -----------------------------------------------------------------------------
+# Cache manager
+# -----------------------------------------------------------------------------
+
+
 class CacheManager:
     def __init__(self, config: Dict[str, Any], output_root: Path):
         cache_cfg = config.get("cache", {})
@@ -505,21 +530,23 @@ class CacheManager:
     def has_valid_manifest(self, kind: str, cache_key: str, expected_outputs: Sequence[Path]) -> bool:
         if not self.enabled or self.force_rebuild:
             return False
-        if not self.manifest_path(kind, cache_key).exists():
+        manifest = self.manifest_path(kind, cache_key)
+        if not manifest.exists():
             return False
-        return all(p.exists() for p in expected_outputs)
+        for p in expected_outputs:
+            if not p.exists():
+                return False
+        return True
 
     def save_manifest(self, kind: str, cache_key: str, payload: Dict[str, Any], outputs: Dict[str, Path]) -> None:
-        save_json(
-            {
-                "cache_key": cache_key,
-                "kind": kind,
-                "created_at": datetime.now().isoformat(timespec="seconds"),
-                "payload": payload,
-                "outputs": {name: str(path) for name, path in outputs.items()},
-            },
-            self.manifest_path(kind, cache_key),
-        )
+        manifest = {
+            "cache_key": cache_key,
+            "kind": kind,
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+            "payload": payload,
+            "outputs": {name: str(path) for name, path in outputs.items()},
+        }
+        save_json(manifest, self.manifest_path(kind, cache_key))
 
 
 # -----------------------------------------------------------------------------
@@ -550,7 +577,9 @@ def run_command(saver: OODPipelineRunSaver, name: str, cmd: List[str], dry_run: 
         )
 
     if process.returncode != 0:
-        raise RuntimeError(f"Command failed: {name}. Return code: {process.returncode}. See log: {log_path}")
+        raise RuntimeError(
+            f"Command failed: {name}. Return code: {process.returncode}. See log: {log_path}"
+        )
 
 
 # -----------------------------------------------------------------------------
@@ -583,7 +612,6 @@ def build_embedding_bank_command(
     output_dir: Path,
     override_data_path: Optional[str | Path] = None,
     include_ood_classes: bool = False,
-    external_classification_npz: Optional[str | Path] = None,
 ) -> List[str]:
     bank_cfg = config["embedding_bank"]
     task_type = get_task_type(config)
@@ -622,16 +650,14 @@ def build_embedding_bank_command(
             add_optional_list_args(cmd, "near_ood_classes", bank_cfg.get("near_ood_classes"))
             add_optional_list_args(cmd, "far_ood_classes", bank_cfg.get("far_ood_classes"))
 
-        if external_classification_npz is not None:
-            ext_bank = config.get("external_classification_embedding_bank", {})
-            cmd.extend(["--external_classification_npz", str(external_classification_npz)])
-            add_optional_value_arg(cmd, "external_x_key", ext_bank.get("external_x_key", "x"))
-            add_optional_value_arg(cmd, "external_y_key", ext_bank.get("external_y_key", "y"))
-
     return cmd
 
 
-def build_forecasting_injection_command(config: Dict[str, Any], output_csv_path: Path, output_mask_path: Path) -> List[str]:
+def build_forecasting_injection_command(
+    config: Dict[str, Any],
+    output_csv_path: Path,
+    output_mask_path: Path,
+) -> List[str]:
     cfg = config.get("forecasting_csv_injection", {})
     input_csv_path = cfg.get("input_csv_path")
     if not input_csv_path:
@@ -663,6 +689,7 @@ def build_forecasting_injection_command(config: Dict[str, Any], output_csv_path:
         "--seed",
         str(cfg.get("seed", 42)),
     ]
+
     anomaly_types = cfg.get("anomaly_types", ["spike", "level_shift", "noise", "trend", "flatline"])
     if isinstance(anomaly_types, str):
         anomaly_types = [anomaly_types]
@@ -672,52 +699,6 @@ def build_forecasting_injection_command(config: Dict[str, Any], output_csv_path:
     add_optional_list_args(cmd, "value_columns", cfg.get("value_columns"))
     add_optional_value_arg(cmd, "date_column", cfg.get("date_column"))
     add_optional_value_arg(cmd, "source_csv_path", cfg.get("source_csv_path"))
-    return cmd
-
-
-def build_external_far_ood_command(config: Dict[str, Any], output_path: Path) -> List[str]:
-    cfg = config.get("classification_external_far_ood", {})
-    bank_cfg = config.get("embedding_bank", {})
-
-    source_data_name = cfg.get("source_data_name")
-    if not source_data_name:
-        raise ValueError("classification_external_far_ood.source_data_name is required.")
-
-    cmd = [
-        sys.executable,
-        "ood_utils/classification_far_ood_builder.py",
-        "--target_model_for",
-        str(cfg.get("target_model_for", bank_cfg.get("model_for"))),
-        "--source_data_name",
-        str(source_data_name),
-        "--model_registry_path",
-        str(cfg.get("model_registry_path", bank_cfg.get("model_registry_path", "./weights/args.json"))),
-        "--output_path",
-        path_str(output_path),
-        "--target_split",
-        str(cfg.get("target_split", "test")),
-        "--source_split",
-        str(cfg.get("source_split", "test")),
-        "--far_ood_count",
-        str(cfg.get("far_ood_count", -1)),
-        "--batch_size",
-        str(cfg.get("batch_size", bank_cfg.get("batch_size", 256))),
-        "--seed",
-        str(cfg.get("seed", 42)),
-        "--length_strategy",
-        str(cfg.get("length_strategy", "interpolate")),
-        "--channel_strategy",
-        str(cfg.get("channel_strategy", "repeat")),
-    ]
-
-    add_optional_list_args(cmd, "id_classes", cfg.get("id_classes", bank_cfg.get("id_classes")))
-    add_optional_list_args(cmd, "near_ood_classes", cfg.get("near_ood_classes", bank_cfg.get("near_ood_classes")))
-
-    # Note: current builder has action='store_true', default=True, so this flag is effectively always True
-    # unless the builder is changed to BooleanOptionalAction. We only pass it when requested explicitly.
-    if bool(cfg.get("normalize_source_to_target", True)):
-        cmd.append("--normalize_source_to_target")
-
     return cmd
 
 
@@ -764,11 +745,19 @@ def resolve_forecasting_lengths(config: Dict[str, Any]) -> Tuple[int, int, int]:
     patch_len = labels_cfg.get("patch_len", get_registry_value(config, "patch_len"))
     stride = labels_cfg.get("stride", get_registry_value(config, "stride"))
     if seq_len is None or patch_len is None or stride is None:
-        raise ValueError("seq_len, patch_len and stride are required for forecasting labels.")
+        raise ValueError(
+            "seq_len, patch_len and stride are required. Put them in forecasting_labels "
+            "or make sure they exist in weights/args.json."
+        )
     return int(seq_len), int(patch_len), int(stride)
 
 
-def build_forecasting_labels_command(config: Dict[str, Any], mask_path: Path, test_bank_path: Path, labels_path: Path) -> List[str]:
+def build_forecasting_labels_command(
+    config: Dict[str, Any],
+    mask_path: Path,
+    test_bank_path: Path,
+    labels_path: Path,
+) -> List[str]:
     seq_len, patch_len, stride = resolve_forecasting_lengths(config)
     labels_cfg = config.get("forecasting_labels", {})
     cmd = [
@@ -900,6 +889,7 @@ def build_experiment_dashboard_command(
         "--output_name",
         output_name,
     ]
+
     if task_type == "forecasting":
         seq_len, _, _ = resolve_forecasting_lengths(config)
         cmd.extend(["--seq_len", str(cfg.get("seq_len", seq_len))])
@@ -909,6 +899,7 @@ def build_experiment_dashboard_command(
             cmd.extend(["--original_csv_path", path_str(original_csv_path)])
         if injected_csv_path is not None:
             cmd.extend(["--injected_csv_path", path_str(injected_csv_path)])
+
     return cmd
 
 
@@ -932,7 +923,7 @@ def build_forecasting_browser_command(
     if top_csv_path is None:
         top_csv_path = evaluation_reports_dir / f"{top_level}_top_{top_k}_scores.csv"
 
-    return [
+    cmd = [
         sys.executable,
         "ood_utils/forecasting_timeseries_browser.py",
         "--original_csv_path",
@@ -960,16 +951,20 @@ def build_forecasting_browser_command(
         "--top_csv_level",
         top_level,
     ]
+    return cmd
 
 
 # -----------------------------------------------------------------------------
-# Cache payloads
+# Cache payload builders
 # -----------------------------------------------------------------------------
 
 
 def checkpoint_path_for_cache(config: Dict[str, Any]) -> Optional[str]:
-    ckpt = config.get("embedding_bank", {}).get("checkpoint_path")
-    return str(resolve_repo_path(ckpt)) if ckpt else None
+    bank_cfg = config.get("embedding_bank", {})
+    if bank_cfg.get("checkpoint_path"):
+        return str(resolve_repo_path(bank_cfg.get("checkpoint_path")))
+    # If checkpoint comes from model registry, include full registry content in the cache payload.
+    return None
 
 
 def embedding_bank_cache_payload(
@@ -977,39 +972,39 @@ def embedding_bank_cache_payload(
     bank_split: str,
     override_data_path: Optional[str | Path],
     include_ood_classes: bool,
-    external_classification_npz: Optional[str | Path],
     cache: CacheManager,
 ) -> Dict[str, Any]:
     bank_cfg = config.get("embedding_bank", {})
-    bank_keys = [
-        "batch_size",
-        "mode",
-        "embedding_view",
-        "l2_normalize",
-        "max_batches",
-        "save_linear_outputs",
-        "linear_checkpoint_path",
-        "allow_partial_checkpoint",
-        "id_classes",
-    ]
-    if include_ood_classes:
-        bank_keys += ["near_ood_classes", "far_ood_classes"]
-
-    return {
+    payload: Dict[str, Any] = {
         "kind": "embedding_bank",
         "model_for": get_model_for(config),
         "task_type": get_task_type(config),
         "bank_split": bank_split,
         "include_ood_classes": include_ood_classes,
-        "external_classification_npz": str(resolve_repo_path(external_classification_npz)) if external_classification_npz else None,
-        "external_classification_signature": file_signature(external_classification_npz, cache.hash_file_contents),
+        "model_registry_path": str(resolve_repo_path(get_model_registry_path(config))),
         "model_registry_signature": file_signature(get_model_registry_path(config), cache.hash_file_contents),
         "checkpoint_signature": file_signature(checkpoint_path_for_cache(config), cache.hash_file_contents),
-        "bank_cfg": {k: bank_cfg.get(k) for k in bank_keys if k in bank_cfg},
+        "bank_cfg": {
+            k: bank_cfg.get(k)
+            for k in [
+                "batch_size",
+                "mode",
+                "embedding_view",
+                "l2_normalize",
+                "max_batches",
+                "save_linear_outputs",
+                "linear_checkpoint_path",
+                "allow_partial_checkpoint",
+                "id_classes",
+                "near_ood_classes" if include_ood_classes else "__skip_near__",
+                "far_ood_classes" if include_ood_classes else "__skip_far__",
+            ]
+            if k in bank_cfg
+        },
         "override_data_path": str(resolve_repo_path(override_data_path)) if override_data_path else None,
         "override_data_signature": file_signature(override_data_path, cache.hash_file_contents),
-        "external_bank_cfg": config.get("external_classification_embedding_bank", {}),
     }
+    return payload
 
 
 def forecasting_injection_cache_payload(config: Dict[str, Any], cache: CacheManager) -> Dict[str, Any]:
@@ -1038,31 +1033,11 @@ def forecasting_injection_cache_payload(config: Dict[str, Any], cache: CacheMana
     }
 
 
-def external_far_ood_cache_payload(config: Dict[str, Any], cache: CacheManager) -> Dict[str, Any]:
-    cfg = config.get("classification_external_far_ood", {})
-    bank_cfg = config.get("embedding_bank", {})
-    return {
-        "kind": "classification_external_far_ood_eval_set",
-        "model_registry_signature": file_signature(
-            cfg.get("model_registry_path", bank_cfg.get("model_registry_path", "./weights/args.json")),
-            cache.hash_file_contents,
-        ),
-        "target_model_for": cfg.get("target_model_for", bank_cfg.get("model_for")),
-        "source_data_name": cfg.get("source_data_name"),
-        "id_classes": cfg.get("id_classes", bank_cfg.get("id_classes")),
-        "near_ood_classes": cfg.get("near_ood_classes", bank_cfg.get("near_ood_classes")),
-        "target_split": cfg.get("target_split", "test"),
-        "source_split": cfg.get("source_split", "test"),
-        "far_ood_count": cfg.get("far_ood_count", -1),
-        "batch_size": cfg.get("batch_size", bank_cfg.get("batch_size", 256)),
-        "seed": cfg.get("seed", 42),
-        "length_strategy": cfg.get("length_strategy", "interpolate"),
-        "channel_strategy": cfg.get("channel_strategy", "repeat"),
-        "normalize_source_to_target": cfg.get("normalize_source_to_target", True),
-    }
-
-
-def detector_cache_payload(config: Dict[str, Any], train_bank_cache_key: str, test_bank_cache_key: str) -> Dict[str, Any]:
+def detector_cache_payload(
+    config: Dict[str, Any],
+    train_bank_cache_key: str,
+    test_bank_cache_key: str,
+) -> Dict[str, Any]:
     cfg = config.get("embedding_detector", {})
     return {
         "kind": "embedding_detector",
@@ -1091,7 +1066,6 @@ def labels_cache_payload(
     task_type: str,
     bank_cache_key: str,
     mask_cache_key: Optional[str] = None,
-    external_eval_cache_key: Optional[str] = None,
 ) -> Dict[str, Any]:
     if task_type == "forecasting":
         seq_len, patch_len, stride = resolve_forecasting_lengths(config)
@@ -1106,14 +1080,6 @@ def labels_cache_payload(
             "split_start_index": labels_cfg.get("split_start_index"),
             "window_start_index_key": labels_cfg.get("window_start_index_key", "window_start_index"),
         }
-
-    if is_external_classification_far_ood(config):
-        return {
-            "kind": "classification_external_labels_passthrough",
-            "test_bank_cache_key": bank_cache_key,
-            "external_eval_cache_key": external_eval_cache_key,
-        }
-
     bank_cfg = config.get("embedding_bank", {})
     return {
         "kind": "classification_labels",
@@ -1125,7 +1091,7 @@ def labels_cache_payload(
 
 
 # -----------------------------------------------------------------------------
-# Cached steps
+# Cached step helpers
 # -----------------------------------------------------------------------------
 
 
@@ -1139,23 +1105,16 @@ def cached_embedding_bank_step(
     run_output_path: Path,
     override_data_path: Optional[str | Path],
     include_ood_classes: bool,
-    external_classification_npz: Optional[str | Path],
     dry_run: bool,
 ) -> Tuple[Path, str, StepRecord]:
-    payload = embedding_bank_cache_payload(
-        config=config,
-        bank_split=bank_split,
-        override_data_path=override_data_path,
-        include_ood_classes=include_ood_classes,
-        external_classification_npz=external_classification_npz,
-        cache=cache,
-    )
+    payload = embedding_bank_cache_payload(config, bank_split, override_data_path, include_ood_classes, cache)
     cache_key = step_cache_key("bank", payload)
     cache_dir = cache.dir("embedding_banks")
     cached_npz = cache_dir / f"{cache_key}.npz"
     cached_meta = cache_dir / f"{cache_key}.meta.json"
 
-    if cache.has_valid_manifest("embedding_banks", cache_key, [cached_npz, cached_meta]):
+    expected = [cached_npz, cached_meta]
+    if cache.has_valid_manifest("embedding_banks", cache_key, expected):
         materialized = cached_npz if cache.materialize_mode == "reference" else run_output_path
         copy_or_link_file(cached_npz, run_output_path, mode=cache.materialize_mode)
         copy_optional_file(cached_meta, run_output_path.with_suffix(".meta.json"), mode=cache.materialize_mode)
@@ -1175,9 +1134,7 @@ def cached_embedding_bank_step(
         output_dir=run_output_path.parent,
         override_data_path=override_data_path,
         include_ood_classes=include_ood_classes,
-        external_classification_npz=external_classification_npz,
     )
-
     if not dry_run:
         run_command(saver, step_name, cmd, dry_run=False)
         if not run_output_path.exists():
@@ -1187,7 +1144,12 @@ def cached_embedding_bank_step(
             meta_path = run_output_path.with_suffix(".meta.json")
             if meta_path.exists():
                 shutil.copy2(meta_path, cached_meta)
-            cache.save_manifest("embedding_banks", cache_key, payload, {"npz": cached_npz, "meta_json": cached_meta})
+            cache.save_manifest(
+                "embedding_banks",
+                cache_key,
+                payload,
+                {"npz": cached_npz, "meta_json": cached_meta},
+            )
     else:
         run_command(saver, step_name, cmd, dry_run=True)
 
@@ -1216,7 +1178,8 @@ def cached_forecasting_injection_step(
     cached_mask = cache_dir / f"{cache_key}.mask.npz"
     cached_meta = cache_dir / f"{cache_key}.mask.meta.json"
 
-    if cache.has_valid_manifest("forecasting_injections", cache_key, [cached_csv, cached_mask]):
+    expected = [cached_csv, cached_mask]
+    if cache.has_valid_manifest("forecasting_injections", cache_key, expected):
         csv_path = cached_csv if cache.materialize_mode == "reference" else output_csv_path
         mask_path = cached_mask if cache.materialize_mode == "reference" else output_mask_path
         copy_or_link_file(cached_csv, output_csv_path, mode=cache.materialize_mode)
@@ -1235,7 +1198,7 @@ def cached_forecasting_injection_step(
     if not dry_run:
         run_command(saver, "02_forecasting_csv_injection", cmd, dry_run=False)
         if not output_csv_path.exists() or not output_mask_path.exists():
-            raise FileNotFoundError("Forecasting injection did not create expected CSV/mask outputs.")
+            raise FileNotFoundError("Forecasting injection did not create the expected CSV/mask outputs.")
         if cache.enabled:
             shutil.copy2(output_csv_path, cached_csv)
             shutil.copy2(output_mask_path, cached_mask)
@@ -1258,51 +1221,6 @@ def cached_forecasting_injection_step(
         cache_key=cache_key,
         cache_hit=False,
         outputs={"injected_csv": str(output_csv_path), "mask": str(output_mask_path)},
-    )
-
-
-def cached_external_far_ood_step(
-    saver: OODPipelineRunSaver,
-    cache: CacheManager,
-    config: Dict[str, Any],
-    output_path: Path,
-    dry_run: bool,
-) -> Tuple[Path, str, StepRecord]:
-    payload = external_far_ood_cache_payload(config, cache)
-    cache_key = step_cache_key("external_far_ood", payload)
-    cache_dir = cache.dir("classification_external_far_ood")
-    cached_npz = cache_dir / f"{cache_key}.npz"
-
-    if cache.has_valid_manifest("classification_external_far_ood", cache_key, [cached_npz]):
-        out_path = cached_npz if cache.materialize_mode == "reference" else output_path
-        copy_or_link_file(cached_npz, output_path, mode=cache.materialize_mode)
-        print(f"[cache hit] 02_classification_external_far_ood_eval_set: {cache_key}")
-        return out_path, cache_key, StepRecord(
-            name="02_classification_external_far_ood_eval_set",
-            status="cache_hit",
-            cache_key=cache_key,
-            cache_hit=True,
-            outputs={"external_eval_set": str(out_path)},
-        )
-
-    cmd = build_external_far_ood_command(config, output_path)
-    if not dry_run:
-        run_command(saver, "02_classification_external_far_ood_eval_set", cmd, dry_run=False)
-        if not output_path.exists():
-            raise FileNotFoundError(f"External far-OOD eval set was not created: {output_path}")
-        if cache.enabled:
-            shutil.copy2(output_path, cached_npz)
-            cache.save_manifest("classification_external_far_ood", cache_key, payload, {"npz": cached_npz})
-    else:
-        run_command(saver, "02_classification_external_far_ood_eval_set", cmd, dry_run=True)
-
-    return output_path, cache_key, StepRecord(
-        name="02_classification_external_far_ood_eval_set",
-        status="skipped_dry_run" if dry_run else "finished",
-        command=shlex.join(cmd),
-        cache_key=cache_key,
-        cache_hit=False,
-        outputs={"external_eval_set": str(output_path)},
     )
 
 
@@ -1331,7 +1249,8 @@ def cached_detector_step(
     run_timestamp = saver.embedding_detectors_dir / f"{output_name}.timestamp_detector.npz"
     run_meta = saver.embedding_detectors_dir / f"{output_name}.detector_meta.json"
 
-    if cache.has_valid_manifest("embedding_detectors", cache_key, [cached_scores, cached_instance, cached_timestamp, cached_meta]):
+    expected = [cached_scores, cached_instance, cached_timestamp, cached_meta]
+    if cache.has_valid_manifest("embedding_detectors", cache_key, expected):
         scores_path = cached_scores if cache.materialize_mode == "reference" else run_scores
         meta_path = cached_meta if cache.materialize_mode == "reference" else run_meta
         copy_or_link_file(cached_scores, run_scores, mode=cache.materialize_mode)
@@ -1347,7 +1266,13 @@ def cached_detector_step(
             outputs={"scores": str(scores_path), "detector_meta": str(meta_path)},
         )
 
-    cmd = build_embedding_detector_command(config, train_bank_path, test_bank_path, saver.embedding_detectors_dir, output_name)
+    cmd = build_embedding_detector_command(
+        config=config,
+        reference_bank_path=train_bank_path,
+        query_bank_path=test_bank_path,
+        output_dir=saver.embedding_detectors_dir,
+        output_name=output_name,
+    )
     if not dry_run:
         run_command(saver, "04_embedding_detector", cmd, dry_run=False)
         for p in [run_scores, run_instance, run_timestamp, run_meta]:
@@ -1392,17 +1317,9 @@ def cached_labels_step(
     test_bank_cache_key: str,
     mask_path: Optional[Path],
     mask_cache_key: Optional[str],
-    external_eval_path: Optional[Path],
-    external_eval_cache_key: Optional[str],
     dry_run: bool,
 ) -> Tuple[Path, str, StepRecord]:
-    payload = labels_cache_payload(
-        config=config,
-        task_type=task_type,
-        bank_cache_key=test_bank_cache_key,
-        mask_cache_key=mask_cache_key,
-        external_eval_cache_key=external_eval_cache_key,
-    )
+    payload = labels_cache_payload(config, task_type, test_bank_cache_key, mask_cache_key)
     cache_key = step_cache_key("labels", payload)
     cache_dir = cache.dir("eval_sets")
     cached_labels = cache_dir / f"{cache_key}.npz"
@@ -1423,80 +1340,23 @@ def cached_labels_step(
         if mask_path is None:
             raise ValueError("mask_path is required for forecasting labels.")
         cmd = build_forecasting_labels_command(config, mask_path, test_bank_path, labels_path)
-        if not dry_run:
-            run_command(saver, "05_build_eval_labels", cmd, dry_run=False)
-            if not labels_path.exists():
-                raise FileNotFoundError(f"Labels file was not created: {labels_path}")
-            if cache.enabled:
-                shutil.copy2(labels_path, cached_labels)
-                cache.save_manifest("eval_sets", cache_key, payload, {"labels": cached_labels})
-        else:
-            run_command(saver, "05_build_eval_labels", cmd, dry_run=True)
-        command = shlex.join(cmd)
-
-    elif is_external_classification_far_ood(config):
-        if external_eval_path is None:
-            raise ValueError(
-                "external_eval_path is required for external classification far-OOD labels."
-            )
-
-        source_labels_path = Path(external_eval_path)
-
-        # If the external eval set was cached/referenced and not materialized into
-        # the current run folder, fall back to the cache file.
-        if not source_labels_path.exists() and external_eval_cache_key is not None:
-            cached_external_eval = (
-                cache.dir("classification_external_far_ood")
-                / f"{external_eval_cache_key}.npz"
-            )
-
-            if cached_external_eval.exists():
-                source_labels_path = cached_external_eval
-
-        if not source_labels_path.exists():
-            raise FileNotFoundError(
-                "External eval set labels file was not found. Tried:\n"
-                f"  run path: {external_eval_path}\n"
-                f"  cache key: {external_eval_cache_key}"
-            )
-
-        command = f"reuse external eval set as labels: {source_labels_path}"
-
-        if not dry_run:
-            if source_labels_path.resolve() != labels_path.resolve():
-                copy_or_link_file(source_labels_path, labels_path, mode="copy")
-
-            if not labels_path.exists():
-                raise FileNotFoundError(f"Labels file was not created: {labels_path}")
-
-            if cache.enabled:
-                shutil.copy2(labels_path, cached_labels)
-                cache.save_manifest(
-                    "eval_sets",
-                    cache_key,
-                    payload,
-                    {"labels": cached_labels},
-                )
-
-        saver.append_command("05_reuse_external_eval_set_as_labels", ["#", command])
-
     else:
         cmd = build_classification_labels_command(config, test_bank_path, labels_path)
-        if not dry_run:
-            run_command(saver, "05_build_eval_labels", cmd, dry_run=False)
-            if not labels_path.exists():
-                raise FileNotFoundError(f"Labels file was not created: {labels_path}")
-            if cache.enabled:
-                shutil.copy2(labels_path, cached_labels)
-                cache.save_manifest("eval_sets", cache_key, payload, {"labels": cached_labels})
-        else:
-            run_command(saver, "05_build_eval_labels", cmd, dry_run=True)
-        command = shlex.join(cmd)
+
+    if not dry_run:
+        run_command(saver, "05_build_eval_labels", cmd, dry_run=False)
+        if not labels_path.exists():
+            raise FileNotFoundError(f"Labels file was not created: {labels_path}")
+        if cache.enabled:
+            shutil.copy2(labels_path, cached_labels)
+            cache.save_manifest("eval_sets", cache_key, payload, {"labels": cached_labels})
+    else:
+        run_command(saver, "05_build_eval_labels", cmd, dry_run=True)
 
     return labels_path, cache_key, StepRecord(
         name="05_build_eval_labels",
         status="skipped_dry_run" if dry_run else "finished",
-        command=command,
+        command=shlex.join(cmd),
         cache_key=cache_key,
         cache_hit=False,
         outputs={"labels": str(labels_path)},
@@ -1508,7 +1368,12 @@ def cached_labels_step(
 # -----------------------------------------------------------------------------
 
 
-def run_uncached_step(saver: OODPipelineRunSaver, name: str, cmd: List[str], dry_run: bool) -> StepRecord:
+def run_uncached_step(
+    saver: OODPipelineRunSaver,
+    name: str,
+    cmd: List[str],
+    dry_run: bool,
+) -> StepRecord:
     run_command(saver, name, cmd, dry_run=dry_run)
     return StepRecord(
         name=name,
@@ -1539,7 +1404,6 @@ def run_pipeline(config_path: Path, args: argparse.Namespace) -> None:
 
     task_type = saver.task_type
     model_for = saver.model_for
-    external_far = is_external_classification_far_ood(config)
 
     train_bank_name = names["train_bank_name"]
     test_bank_name = names["test_bank_name"]
@@ -1558,7 +1422,6 @@ def run_pipeline(config_path: Path, args: argparse.Namespace) -> None:
         "model_for": model_for,
         "run_name": saver.run_name,
         "output_name": output_name,
-        "external_classification_far_ood": external_far,
         "cache": {
             "enabled": cache.enabled,
             "force_rebuild": cache.force_rebuild,
@@ -1580,14 +1443,16 @@ def run_pipeline(config_path: Path, args: argparse.Namespace) -> None:
     }
 
     def add_step(record: StepRecord) -> None:
-        summary["steps"].append(to_jsonable(asdict(record)))
+        summary["steps"].append(to_jsonable(record.__dict__))
         write_summary(saver, summary)
 
     try:
+        # 00 optional model training
         train_model_cmd = build_train_model_command(config)
         if train_model_cmd is not None:
             add_step(run_uncached_step(saver, "00_train_model", train_model_cmd, args.dry_run))
 
+        # 01 train/reference bank, cached aggressively
         train_bank_path, train_bank_cache_key, record = cached_embedding_bank_step(
             saver=saver,
             cache=cache,
@@ -1598,7 +1463,6 @@ def run_pipeline(config_path: Path, args: argparse.Namespace) -> None:
             run_output_path=run_train_bank_path,
             override_data_path=None,
             include_ood_classes=False,
-            external_classification_npz=None,
             dry_run=args.dry_run,
         )
         add_step(record)
@@ -1607,10 +1471,9 @@ def run_pipeline(config_path: Path, args: argparse.Namespace) -> None:
         original_csv_path: Optional[Path] = None
         mask_path: Optional[Path] = None
         mask_cache_key: Optional[str] = None
-        external_eval_path: Optional[Path] = None
-        external_eval_cache_key: Optional[str] = None
         test_override_data_path: Optional[str | Path] = None
 
+        # 02/03 task-specific test data and test bank
         if task_type == "forecasting":
             injection_cfg = config.get("forecasting_csv_injection", {})
             use_injection = bool(injection_cfg.get("use_injection", False))
@@ -1633,9 +1496,14 @@ def run_pipeline(config_path: Path, args: argparse.Namespace) -> None:
                 override_path = config.get("embedding_bank", {}).get("override_data_path")
                 mask_raw = injection_cfg.get("output_mask_path") or config.get("forecasting_labels", {}).get("mask_path")
                 if override_path is None:
-                    raise ValueError("For forecasting without injection, set embedding_bank.override_data_path.")
+                    raise ValueError(
+                        "For forecasting without injection, set embedding_bank.override_data_path."
+                    )
                 if mask_raw is None:
-                    raise ValueError("For forecasting without injection, set mask path.")
+                    raise ValueError(
+                        "For forecasting without injection, set forecasting_csv_injection.output_mask_path "
+                        "or forecasting_labels.mask_path."
+                    )
                 test_override_data_path = resolve_repo_path(override_path)
                 injected_csv_path = resolve_repo_path(override_path)
                 mask_path = resolve_repo_path(mask_raw)
@@ -1651,54 +1519,28 @@ def run_pipeline(config_path: Path, args: argparse.Namespace) -> None:
                 run_output_path=run_test_bank_path,
                 override_data_path=test_override_data_path,
                 include_ood_classes=False,
-                external_classification_npz=None,
                 dry_run=args.dry_run,
             )
             add_step(record)
 
         elif task_type == "classification":
-            if external_far:
-                external_eval_path, external_eval_cache_key, record = cached_external_far_ood_step(
-                    saver=saver,
-                    cache=cache,
-                    config=config,
-                    output_path=saver.eval_sets_dir / names["external_eval_name"],
-                    dry_run=args.dry_run,
-                )
-                add_step(record)
-
-                test_bank_path, test_bank_cache_key, record = cached_embedding_bank_step(
-                    saver=saver,
-                    cache=cache,
-                    config=config,
-                    step_name="03_test_embedding_bank",
-                    bank_split="test",
-                    output_name=test_bank_name,
-                    run_output_path=run_test_bank_path,
-                    override_data_path=None,
-                    include_ood_classes=True,
-                    external_classification_npz=external_eval_path,
-                    dry_run=args.dry_run,
-                )
-                add_step(record)
-            else:
-                test_bank_path, test_bank_cache_key, record = cached_embedding_bank_step(
-                    saver=saver,
-                    cache=cache,
-                    config=config,
-                    step_name="03_test_embedding_bank",
-                    bank_split="test",
-                    output_name=test_bank_name,
-                    run_output_path=run_test_bank_path,
-                    override_data_path=None,
-                    include_ood_classes=True,
-                    external_classification_npz=None,
-                    dry_run=args.dry_run,
-                )
-                add_step(record)
+            test_bank_path, test_bank_cache_key, record = cached_embedding_bank_step(
+                saver=saver,
+                cache=cache,
+                config=config,
+                step_name="03_test_embedding_bank",
+                bank_split="test",
+                output_name=test_bank_name,
+                run_output_path=run_test_bank_path,
+                override_data_path=None,
+                include_ood_classes=True,
+                dry_run=args.dry_run,
+            )
+            add_step(record)
         else:
             raise ValueError(f"Unknown task_type: {task_type}")
 
+        # 04 detector, cached on train/test bank cache keys + detector params
         scores_path, detector_meta_path, detector_cache_key, record = cached_detector_step(
             saver=saver,
             cache=cache,
@@ -1712,6 +1554,7 @@ def run_pipeline(config_path: Path, args: argparse.Namespace) -> None:
         )
         add_step(record)
 
+        # 05 labels, cached
         labels_path, labels_cache_key, record = cached_labels_step(
             saver=saver,
             cache=cache,
@@ -1722,20 +1565,21 @@ def run_pipeline(config_path: Path, args: argparse.Namespace) -> None:
             test_bank_cache_key=test_bank_cache_key,
             mask_path=mask_path,
             mask_cache_key=mask_cache_key,
-            external_eval_path=external_eval_path,
-            external_eval_cache_key=external_eval_cache_key,
             dry_run=args.dry_run,
         )
         add_step(record)
 
+        # 06 evaluate: cheap, always run to generate current-run reports
         eval_cmd = build_evaluate_command(config, scores_path, labels_path, saver.evaluation_reports_dir, output_name)
         add_step(run_uncached_step(saver, "06_evaluate_detector", eval_cmd, args.dry_run))
 
+        # 07 old visualizer: optional, default true
         vis_cfg = config.get("visualize_scores", {})
         if bool(vis_cfg.get("enabled", True)):
             vis_cmd = build_visualize_scores_command(config, scores_path, labels_path, saver.score_visualizations_dir, output_name)
             add_step(run_uncached_step(saver, "07_visualize_scores", vis_cmd, args.dry_run))
 
+        # 08 new experiment dashboard: optional, default true if script exists
         dash_cfg = config.get("experiment_dashboard", {})
         dashboard_script_exists = (REPO_ROOT / "ood_utils" / "experiment_dashboard.py").exists()
         if bool(dash_cfg.get("enabled", dashboard_script_exists)):
@@ -1757,6 +1601,7 @@ def run_pipeline(config_path: Path, args: argparse.Namespace) -> None:
             )
             add_step(run_uncached_step(saver, "08_experiment_dashboard", dashboard_cmd, args.dry_run))
 
+        # 09 forecasting full browser: optional, default true if forecasting and script exists
         browser_cfg = config.get("forecasting_timeseries_browser", {})
         browser_script_exists = (REPO_ROOT / "ood_utils" / "forecasting_timeseries_browser.py").exists()
         if task_type == "forecasting" and bool(browser_cfg.get("enabled", browser_script_exists)):
@@ -1788,8 +1633,6 @@ def run_pipeline(config_path: Path, args: argparse.Namespace) -> None:
             "detector_meta": str(detector_meta_path),
             "score_visualizations": str(saver.score_visualizations_dir),
         }
-        if external_eval_path is not None:
-            summary["final_outputs"]["external_eval_set"] = str(external_eval_path)
         if mask_path is not None:
             summary["final_outputs"]["mask"] = str(mask_path)
         if injected_csv_path is not None:
@@ -1813,9 +1656,12 @@ def run_pipeline(config_path: Path, args: argparse.Namespace) -> None:
         error_path = saver.run_dir / "error.txt"
         with open(error_path, "w", encoding="utf-8") as f:
             f.write(error_text)
+
         summary["error"] = str(exc)
+        summary["error_path"] = str(error_path)
         write_summary(saver, summary)
         saver.update_status("failed", message=str(exc), results=summary)
+
         print("\nPipeline failed.")
         print(f"Run directory: {saver.run_dir}")
         print(f"Error log:     {error_path}")
@@ -1829,14 +1675,20 @@ def run_pipeline(config_path: Path, args: argparse.Namespace) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run TimeDRL OOD/anomaly pipeline from a JSON config."
+        description="Run the full TimeDRL OOD/anomaly detection pipeline from a JSON config."
     )
-    parser.add_argument("--config", type=str, required=True)
-    parser.add_argument("--run_name", type=str, default=None)
-    parser.add_argument("--output_root", type=str, default=None)
-    parser.add_argument("--dry_run", action="store_true", default=False)
-    parser.add_argument("--no_cache", action="store_true", default=False)
-    parser.add_argument("--force", action="store_true", default=False)
+    parser.add_argument("--config", type=str, required=True, help="Path to pipeline JSON config.")
+    parser.add_argument("--run_name", type=str, default=None, help="Override run.run_name from config.")
+    parser.add_argument("--output_root", type=str, default=None, help="Override run.output_root from config.")
+    parser.add_argument("--dry_run", action="store_true", default=False, help="Print/write commands but do not execute them.")
+    parser.add_argument("--no_cache", action="store_true", default=False, help="Disable all cache reuse for this run.")
+    parser.add_argument("--force", action="store_true", default=False, help="Force rebuild cached artifacts and overwrite cache entries.")
+    parser.add_argument(
+        "--continue_on_error",
+        action="store_true",
+        default=False,
+        help="Deprecated placeholder. The v2 runner stops on the first failed step.",
+    )
     return parser.parse_args()
 
 

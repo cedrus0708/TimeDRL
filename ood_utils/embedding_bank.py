@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 
@@ -167,8 +167,106 @@ def parse_embedding_bank_args() -> Tuple[argparse.Namespace, List[str]]:
         ),
     )
 
+    parser.add_argument(
+        "--external_classification_npz",
+        type=str,
+        default=None,
+        help=(
+            "Optional external classification eval set .npz. "
+            "Expected keys: x and y. Used for true external far-OOD evaluation."
+        ),
+    )
+
+    parser.add_argument(
+        "--external_x_key",
+        type=str,
+        default="x",
+    )
+
+    parser.add_argument(
+        "--external_y_key",
+        type=str,
+        default="y",
+    )
+
     bank_args, timedrl_argv = parser.parse_known_args()
     return bank_args, timedrl_argv
+
+
+class ExternalClassificationNPZDataset(Dataset):
+    """
+    External classification dataset for OOD evaluation.
+
+    Expected:
+        x: [N, L, C]
+        y: [N]
+
+    __getitem__ returns:
+        batch_x, batch_y
+    """
+
+    def __init__(
+        self,
+        npz_path: str | Path,
+        x_key: str = "x",
+        y_key: str = "y",
+    ):
+        npz_path = Path(npz_path)
+
+        if not npz_path.exists():
+            raise FileNotFoundError(f"External classification npz not found: {npz_path}")
+
+        with np.load(npz_path, allow_pickle=False) as data:
+            if x_key not in data:
+                raise KeyError(f"x_key='{x_key}' not found in {npz_path}")
+
+            self.x = data[x_key].astype(np.float32)
+
+            if y_key in data:
+                self.y = data[y_key].astype(np.int64)
+            elif "sample_label" in data:
+                self.y = data["sample_label"].astype(np.int64)
+            else:
+                self.y = np.zeros(self.x.shape[0], dtype=np.int64)
+
+        if self.x.ndim == 2:
+            self.x = self.x[:, :, None]
+
+        if self.x.ndim != 3:
+            raise ValueError(f"Expected x shape [N, L, C], got {self.x.shape}")
+
+        self.y = self.y.reshape(-1)
+
+        if self.x.shape[0] != self.y.shape[0]:
+            raise ValueError(
+                f"x/y length mismatch: {self.x.shape[0]} != {self.y.shape[0]}"
+            )
+
+    def __len__(self) -> int:
+        return int(self.x.shape[0])
+
+    def __getitem__(self, index: int):
+        return self.x[index], self.y[index]
+
+def load_external_classification_loader(
+    npz_path: str | Path,
+    batch_size: int,
+    x_key: str = "x",
+    y_key: str = "y",
+) -> DataLoader:
+    dataset = ExternalClassificationNPZDataset(
+        npz_path=npz_path,
+        x_key=x_key,
+        y_key=y_key,
+    )
+
+    return DataLoader(
+        dataset=dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        drop_last=False,
+        num_workers=0,
+    )
 
 def apply_override_data_path(
     args: argparse.Namespace,
@@ -794,21 +892,39 @@ def main() -> None:
 
         linear_eval.eval()
 
-    train_loader, valid_loader, test_loader = load_train_valid_test_loaders(
-        args=args,
-        mode=bank_args.mode,
-    )
+    if bank_args.external_classification_npz is not None:
+        if args.task_name != "classification":
+            raise ValueError("--external_classification_npz is only supported for classification.")
 
-    split_to_loader = {
-        "train": train_loader,
-        "valid": valid_loader,
-        "test": test_loader,
-    }
+        if bank_args.bank_split != "test":
+            raise ValueError("--external_classification_npz should be used with --bank_split test.")
 
-    selected_loader = make_ordered_loader(
-        split_to_loader[bank_args.bank_split],
-        batch_size=args.batch_size,
-    )
+        selected_loader = load_external_classification_loader(
+            npz_path=bank_args.external_classification_npz,
+            batch_size=args.batch_size,
+            x_key=bank_args.external_x_key,
+            y_key=bank_args.external_y_key,
+        )
+
+        print("[external_classification_npz] Using external classification eval set:")
+        print(f"  path: {bank_args.external_classification_npz}")
+
+    else:
+        train_loader, valid_loader, test_loader = load_train_valid_test_loaders(
+            args=args,
+            mode=bank_args.mode,
+        )
+
+        split_to_loader = {
+            "train": train_loader,
+            "valid": valid_loader,
+            "test": test_loader,
+        }
+
+        selected_loader = make_ordered_loader(
+            split_to_loader[bank_args.bank_split],
+            batch_size=args.batch_size,
+        )
 
     bank = build_embedding_bank(
         model=model,
@@ -893,6 +1009,7 @@ def main() -> None:
             "window_start_index" if "window_start_index" in bank else None
         ),
         "has_window_start_index": "window_start_index" in bank,
+        "external_classification_npz": bank_args.external_classification_npz,
         
     }
 

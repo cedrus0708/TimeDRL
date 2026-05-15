@@ -38,8 +38,8 @@
       "use_amp": true
     },
     "checkpoints": {
-      "linear_model": "forecasting_M_Exchange/linear_model_0_18_forecasting_M_Exchange_2026_05_10_08_33_19.pth",
-      "base_model": "forecasting_M_Exchange/model_9_forecasting_M_Exchange_2026_05_10_08_33_19.pth"
+      "linear_model": "forecasting/Exchange/linear_model_0_3_forecasting_M_Exchange_2026_05_14_13_32_14.pth",
+      "base_model": "forecasting/Exchange/model_9_forecasting_M_Exchange_2026_05_14_13_32_14.pth"
     }
   },
   {
@@ -79,8 +79,8 @@
       "use_amp": true
     },
     "checkpoints": {
-      "linear_model": "linear_model_0_17_forecasting_M_Weather_2026_05_09_13_56_33.pth",
-      "base_model": "model_9_forecasting_M_Weather_2026_05_09_13_56_33.pth"
+      "linear_model": "forecasting/Weather/linear_model_5_4_forecasting_M_Weather_2026_05_14_13_43_29.pth",
+      "base_model": "forecasting/Weather/model_9_forecasting_M_Weather_2026_05_14_13_43_29.pth"
     }
   },
   {

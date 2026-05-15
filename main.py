@@ -350,7 +350,7 @@ def get_args_from_parser() -> argparse.Namespace:
         "--patience", type=int, default=10, help="early stopping patience"
     )
     parser.add_argument(
-        "--delta", type=float, default=0.0001, help="early stopping delta"
+        "--delta", type=float, default=1e-6, help="early stopping delta"
     )
     parser.add_argument(
         "--use_amp",

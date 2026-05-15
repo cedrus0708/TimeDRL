@@ -1,0 +1,15 @@
+{
+
+"run": {
+"run_name": "Exchange_near_injected_train_knn"
+},
+"evaluation_split": "train",
+"forecasting_csv_injection": {
+"use_injection": true,
+"anomaly_types": ["spike", "level_shift", "noise", "trend", "flatline"],
+"inject_start_ratio": 0.0,
+"inject_end_ratio": 0.7,
+"source_csv_path": null
+}
+
+}
